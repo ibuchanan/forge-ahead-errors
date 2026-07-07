@@ -17,11 +17,19 @@ import {
   StandardError,
   toErrorMessage,
   toProblemDetails,
-} from "../../src/util/errors";
+} from "../src/errors";
 
 // Codes used only in tests — cleaned up after each test to prevent shared
 // mutable state from leaking across the suite via StandardError.types.
 const TEST_CODES = [9999, 9001, 9002, 9003, 8888, 7777, 6666];
+
+// Matches the branching consumers are expected to use (see README `.match()`
+// example): the ok branch throws because every case here is expected to fail.
+function expectErr(): () => never {
+  return () => {
+    throw new Error("expected an Err result");
+  };
+}
 
 describe("StandardError", () => {
   describe("constructor", () => {
@@ -60,59 +68,61 @@ describe("StandardError", () => {
   describe("error() method", () => {
     it("should create ProblemDetails with all required fields", () => {
       const error = new StandardError(404, "Not Found");
-      const result = error.error("Resource not found");
 
-      expect(result.isErr()).toBe(true);
-      const problemDetails = result.error;
-      expect(problemDetails).toHaveProperty("type");
-      expect(problemDetails).toHaveProperty("title");
-      expect(problemDetails).toHaveProperty("status");
-      expect(problemDetails).toHaveProperty("detail");
-      expect(problemDetails).toHaveProperty("timestamp");
+      error.error("Resource not found").match(expectErr(), (problemDetails) => {
+        expect(problemDetails).toHaveProperty("type");
+        expect(problemDetails).toHaveProperty("title");
+        expect(problemDetails).toHaveProperty("status");
+        expect(problemDetails).toHaveProperty("detail");
+        expect(problemDetails).toHaveProperty("timestamp");
+      });
     });
 
     it("should populate ProblemDetails correctly with message only", () => {
       const error = new StandardError(404, "Not Found");
-      const result = error.error("Resource not found");
 
-      expect(result.isErr()).toBe(true);
-      const problemDetails = result.error;
-      expect(problemDetails.type).toBe("https://httpstatuses.io/404");
-      expect(problemDetails.title).toBe("Not Found");
-      expect(problemDetails.status).toBe(404);
-      expect(problemDetails.detail).toBe("Resource not found");
-      expect(problemDetails.instance).toBeUndefined();
+      error.error("Resource not found").match(expectErr(), (problemDetails) => {
+        expect(problemDetails.type).toBe("https://httpstatuses.io/404");
+        expect(problemDetails.title).toBe("Not Found");
+        expect(problemDetails.status).toBe(404);
+        expect(problemDetails.detail).toBe("Resource not found");
+        expect(problemDetails.instance).toBeUndefined();
+      });
     });
 
     it("should generate ISO timestamp when not provided", () => {
       const error = new StandardError(500, "Internal Server Error");
-      const result = error.error("Something went wrong");
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error.timestamp).toBeDefined();
-      expect(typeof result.error.timestamp).toBe("string");
-      expect(() => new Date(result.error.timestamp)).not.toThrow();
+      error
+        .error("Something went wrong")
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.timestamp).toBeDefined();
+          expect(typeof problemDetails.timestamp).toBe("string");
+          expect(() => new Date(problemDetails.timestamp)).not.toThrow();
+        });
     });
 
     it("should use provided timestamp when given", () => {
       const error = new StandardError(400, "Bad Request");
       const customTimestamp = "2024-01-15T10:30:00.000Z";
-      const result = error.error("Invalid input", customTimestamp);
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error.timestamp).toBe(customTimestamp);
+      error
+        .error("Invalid input", customTimestamp)
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.timestamp).toBe(customTimestamp);
+        });
     });
 
     it("should include instance when provided", () => {
       const error = new StandardError(404, "Not Found");
-      const result = error.error(
-        "User not found",
-        undefined,
-        "https://api.example.com/users/123",
-      );
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error.instance).toBe("https://api.example.com/users/123");
+      error
+        .error("User not found", undefined, "https://api.example.com/users/123")
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.instance).toBe(
+            "https://api.example.com/users/123",
+          );
+        });
     });
 
     it("should handle all parameters provided", () => {
@@ -120,24 +130,24 @@ describe("StandardError", () => {
       const timestamp = "2024-02-14T12:00:00.000Z";
       const instance = "https://api.example.com/resource";
 
-      const result = error.error("Access denied", timestamp, instance);
-
-      expect(result.isErr()).toBe(true);
-      const problemDetails = result.error;
-      expect(problemDetails.type).toBe("https://httpstatuses.io/403");
-      expect(problemDetails.title).toBe("Forbidden");
-      expect(problemDetails.status).toBe(403);
-      expect(problemDetails.detail).toBe("Access denied");
-      expect(problemDetails.timestamp).toBe(timestamp);
-      expect(problemDetails.instance).toBe(instance);
+      error
+        .error("Access denied", timestamp, instance)
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.type).toBe("https://httpstatuses.io/403");
+          expect(problemDetails.title).toBe("Forbidden");
+          expect(problemDetails.status).toBe(403);
+          expect(problemDetails.detail).toBe("Access denied");
+          expect(problemDetails.timestamp).toBe(timestamp);
+          expect(problemDetails.instance).toBe(instance);
+        });
     });
 
     it("should handle empty message", () => {
       const error = new StandardError(500, "Internal Server Error");
-      const result = error.error("");
 
-      expect(result.isErr()).toBe(true);
-      expect(result.error.detail).toBe("");
+      error.error("").match(expectErr(), (problemDetails) => {
+        expect(problemDetails.detail).toBe("");
+      });
     });
   });
 
@@ -238,13 +248,12 @@ describe("StandardError", () => {
 
     it("should allow creating error objects from getOrDefault result", () => {
       const error = StandardError.getOrDefault(418);
-      const result = error.error("Teapot error");
 
-      expect(result.isErr()).toBe(true);
-      const problemDetails = result.error;
-      expect(problemDetails.status).toBe(500);
-      expect(problemDetails.title).toBe("Internal Server Error");
-      expect(problemDetails.detail).toBe("Teapot error");
+      error.error("Teapot error").match(expectErr(), (problemDetails) => {
+        expect(problemDetails.status).toBe(500);
+        expect(problemDetails.title).toBe("Internal Server Error");
+        expect(problemDetails.detail).toBe("Teapot error");
+      });
     });
 
     it("should handle custom registered error types", () => {
@@ -271,81 +280,92 @@ describe("StandardError", () => {
   describe("usage patterns", () => {
     it("should allow retrieving and using pre-registered errors", () => {
       const notFoundError = StandardError.types.get(404);
-      const result = notFoundError?.error("manifest.yml not found");
+      if (!notFoundError) throw new Error("expected 404 to be pre-registered");
 
-      expect(result?.isErr()).toBe(true);
-      const problemDetails = result?.error;
-      expect(problemDetails?.status).toBe(404);
-      expect(problemDetails?.title).toBe("Not Found");
-      expect(problemDetails?.detail).toBe("manifest.yml not found");
+      notFoundError
+        .error("manifest.yml not found")
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.status).toBe(404);
+          expect(problemDetails.title).toBe("Not Found");
+          expect(problemDetails.detail).toBe("manifest.yml not found");
+        });
     });
 
     it("should support creating error from types map with all parameters", () => {
       const serverError = StandardError.types.get(500);
+      if (!serverError) throw new Error("expected 500 to be pre-registered");
+
       const timestamp = "2024-02-14T14:00:00.000Z";
       const instance = "https://api.example.com/endpoint";
 
-      const result = serverError?.error(
-        "Unexpected error occurred",
-        timestamp,
-        instance,
-      );
-
-      expect(result?.isErr()).toBe(true);
-      const problemDetails = result?.error;
-      expect(problemDetails?.status).toBe(500);
-      expect(problemDetails?.timestamp).toBe(timestamp);
-      expect(problemDetails?.instance).toBe(instance);
+      serverError
+        .error("Unexpected error occurred", timestamp, instance)
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.status).toBe(500);
+          expect(problemDetails.timestamp).toBe(timestamp);
+          expect(problemDetails.instance).toBe(instance);
+        });
     });
 
     it("should handle multiple errors from same type", () => {
       const badRequestError = StandardError.types.get(415);
+      if (!badRequestError) {
+        throw new Error("expected 415 to be pre-registered");
+      }
 
-      const error1 = badRequestError?.error("Invalid YAML format");
-      const error2 = badRequestError?.error("Invalid manifest structure");
+      // .match() also works as a value-extracting expression, not just a
+      // side-effecting call — useful when a later assertion needs the value.
+      const status1 = badRequestError
+        .error("Invalid YAML format")
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.detail).toBe("Invalid YAML format");
+          return problemDetails.status;
+        });
 
-      expect(error1?.isErr()).toBe(true);
-      expect(error2?.isErr()).toBe(true);
-      expect(error1?.error.detail).toBe("Invalid YAML format");
-      expect(error2?.error.detail).toBe("Invalid manifest structure");
-      expect(error1?.error.status).toBe(error2?.error.status);
+      const status2 = badRequestError
+        .error("Invalid manifest structure")
+        .match(expectErr(), (problemDetails) => {
+          expect(problemDetails.detail).toBe("Invalid manifest structure");
+          return problemDetails.status;
+        });
+
+      expect(status1).toBe(status2);
     });
   });
 
   describe("ProblemDetails interface compliance", () => {
     it("should return object matching ProblemDetails interface", () => {
       const error = new StandardError(404, "Not Found");
-      const resultWrapper = error.error(
-        "Resource not found",
-        "2024-01-01T00:00:00.000Z",
-        "https://example.com/resource/1",
-      );
 
-      // Extract ProblemDetails from Result
-      expect(resultWrapper.isErr()).toBe(true);
-      const result: ProblemDetails = resultWrapper.error;
-
-      // TypeScript compilation will fail if interface doesn't match
-      expect(result.type).toBe("https://httpstatuses.io/404");
-      expect(result.title).toBe("Not Found");
-      expect(result.status).toBe(404);
-      expect(result.detail).toBe("Resource not found");
-      expect(result.timestamp).toBe("2024-01-01T00:00:00.000Z");
-      expect(result.instance).toBe("https://example.com/resource/1");
+      error
+        .error(
+          "Resource not found",
+          "2024-01-01T00:00:00.000Z",
+          "https://example.com/resource/1",
+        )
+        .match(expectErr(), (problemDetails: ProblemDetails) => {
+          // TypeScript compilation will fail if interface doesn't match
+          expect(problemDetails.type).toBe("https://httpstatuses.io/404");
+          expect(problemDetails.title).toBe("Not Found");
+          expect(problemDetails.status).toBe(404);
+          expect(problemDetails.detail).toBe("Resource not found");
+          expect(problemDetails.timestamp).toBe("2024-01-01T00:00:00.000Z");
+          expect(problemDetails.instance).toBe(
+            "https://example.com/resource/1",
+          );
+        });
     });
 
     it("should have correct types for all required fields", () => {
       const error = new StandardError(500, "Internal Server Error");
-      const resultWrapper = error.error("Error message");
 
-      expect(resultWrapper.isErr()).toBe(true);
-      const result = resultWrapper.error;
-
-      expect(typeof result.type).toBe("string");
-      expect(typeof result.title).toBe("string");
-      expect(typeof result.status).toBe("number");
-      expect(typeof result.detail).toBe("string");
-      expect(typeof result.timestamp).toBe("string");
+      error.error("Error message").match(expectErr(), (problemDetails) => {
+        expect(typeof problemDetails.type).toBe("string");
+        expect(typeof problemDetails.title).toBe("string");
+        expect(typeof problemDetails.status).toBe("number");
+        expect(typeof problemDetails.detail).toBe("string");
+        expect(typeof problemDetails.timestamp).toBe("string");
+      });
     });
   });
 
@@ -488,15 +508,19 @@ describe("isProblemDetails", () => {
   });
 
   it("should accept ProblemDetails produced by StandardError.error()", () => {
-    const result = StandardError.getOrDefault(500).error("boom");
-    expect(result.isErr()).toBe(true);
-    expect(isProblemDetails(result.error)).toBe(true);
+    StandardError.getOrDefault(500)
+      .error("boom")
+      .match(expectErr(), (problemDetails) => {
+        expect(isProblemDetails(problemDetails)).toBe(true);
+      });
   });
 });
 
 describe("toErrorMessage", () => {
   it("should return the detail field from a ProblemDetails", () => {
-    const pd = StandardError.getOrDefault(404).error("Not here").error;
+    const pd = StandardError.getOrDefault(404)
+      .error("Not here")
+      .match(expectErr(), (problemDetails) => problemDetails);
     expect(toErrorMessage(pd)).toBe("Not here");
   });
 
@@ -531,14 +555,18 @@ describe("toErrorMessage", () => {
 
   it("should prefer ProblemDetails.detail over Error.message when both could match", () => {
     // A ProblemDetails is also an object; confirm isProblemDetails wins
-    const pd = StandardError.getOrDefault(500).error("pd detail").error;
+    const pd = StandardError.getOrDefault(500)
+      .error("pd detail")
+      .match(expectErr(), (problemDetails) => problemDetails);
     expect(toErrorMessage(pd)).toBe("pd detail");
   });
 });
 
 describe("toProblemDetails", () => {
   it("should pass through an existing ProblemDetails unchanged", () => {
-    const original = StandardError.getOrDefault(404).error("original").error;
+    const original = StandardError.getOrDefault(404)
+      .error("original")
+      .match(expectErr(), (problemDetails) => problemDetails);
     const result = toProblemDetails(original);
     expect(result).toBe(original); // same reference
   });
@@ -591,42 +619,51 @@ describe("problemResult", () => {
   });
 
   it("should wrap an Error with default status 500", () => {
-    const result = problemResult(new Error("something broke"));
-    expect(result.isErr()).toBe(true);
-    expect(result.error.status).toBe(500);
-    expect(result.error.detail).toBe("something broke");
+    problemResult(new Error("something broke")).match(
+      expectErr(),
+      (problemDetails) => {
+        expect(problemDetails.status).toBe(500);
+        expect(problemDetails.detail).toBe("something broke");
+      },
+    );
   });
 
   it("should wrap an Error with a specified status", () => {
-    const result = problemResult(new Error("not available"), 503);
-    expect(result.isErr()).toBe(true);
-    expect(result.error.status).toBe(503);
-    expect(result.error.detail).toBe("not available");
+    problemResult(new Error("not available"), 503).match(
+      expectErr(),
+      (problemDetails) => {
+        expect(problemDetails.status).toBe(503);
+        expect(problemDetails.detail).toBe("not available");
+      },
+    );
   });
 
   it("should pass through an existing ProblemDetails", () => {
-    const original = StandardError.getOrDefault(404).error("original").error;
-    const result = problemResult(original, 500);
-    expect(result.isErr()).toBe(true);
-    expect(result.error).toBe(original);
+    const original = StandardError.getOrDefault(404)
+      .error("original")
+      .match(expectErr(), (problemDetails) => problemDetails);
+
+    problemResult(original, 500).match(expectErr(), (problemDetails) => {
+      expect(problemDetails).toBe(original);
+    });
   });
 
   it("should wrap a plain string error", () => {
-    const result = problemResult("string error", 400);
-    expect(result.isErr()).toBe(true);
-    expect(result.error.detail).toBe("string error");
-    expect(result.error.status).toBe(400);
+    problemResult("string error", 400).match(expectErr(), (problemDetails) => {
+      expect(problemDetails.detail).toBe("string error");
+      expect(problemDetails.status).toBe(400);
+    });
   });
 
   it("should wrap null with fallback message", () => {
-    const result = problemResult(null);
-    expect(result.isErr()).toBe(true);
-    expect(result.error.detail).toBe("An unexpected error occurred.");
+    problemResult(null).match(expectErr(), (problemDetails) => {
+      expect(problemDetails.detail).toBe("An unexpected error occurred.");
+    });
   });
 
   it("should satisfy isProblemDetails on the error value", () => {
-    const result = problemResult(new Error("test"));
-    expect(result.isErr()).toBe(true);
-    expect(isProblemDetails(result.error)).toBe(true);
+    problemResult(new Error("test")).match(expectErr(), (problemDetails) => {
+      expect(isProblemDetails(problemDetails)).toBe(true);
+    });
   });
 });
