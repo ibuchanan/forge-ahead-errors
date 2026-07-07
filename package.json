@@ -23,6 +23,7 @@
     "check": "npm run lint:check && npm run format:check && npm run typecheck",
     "clean": "rm -rf ./node_modules && rm package-lock.json && rm -rf ./dist",
     "dev": "tsdown --watch",
+    "prepare": "npm run build",
     "format": "biome format --write",
     "format:check": "biome format",
     "lint:check": "biome lint",
