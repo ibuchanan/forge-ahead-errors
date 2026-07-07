@@ -1,0 +1,45 @@
+{
+  "name": "@forge-ahead/errors",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "changelog": "git cliff",
+    "check": "npm run lint:check && npm run format:check && npm run typecheck",
+    "clean": "rm -rf ./node_modules && rm package-lock.json && rm -rf ./dist",
+    "dev": "tsdown --watch",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "lint:check": "biome lint",
+    "lint:fix": "biome lint --write",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "neverthrow": "^8.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.2",
+    "@types/node": "22",
+    "tsdown": "^0.22",
+    "typescript": "^5.9",
+    "vitest": "5"
+  }
+}
