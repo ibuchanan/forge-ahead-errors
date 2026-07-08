@@ -3,17 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
-  "engines": {
-    "node": ">=22"
-  },
-  "main": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
     }
   },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -23,11 +21,11 @@
     "check": "npm run lint:check && npm run format:check && npm run typecheck",
     "clean": "rm -rf ./node_modules && rm package-lock.json && rm -rf ./dist",
     "dev": "tsdown --watch",
-    "prepare": "npm run build",
     "format": "biome format --write",
     "format:check": "biome format",
     "lint:check": "biome lint",
     "lint:fix": "biome lint --write",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
@@ -42,5 +40,8 @@
     "tsdown": "^0.22",
     "typescript": "^5.9",
     "vitest": "^4.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
