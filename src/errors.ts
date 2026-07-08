@@ -227,17 +227,52 @@ export class StandardError {
   }
 }
 
-// Create the standard errors needed for this project
-StandardError.add(400, "Bad Request"); // Invalid or malformed input
-StandardError.add(401, "Unauthorized"); // Invalid or missing authentication token
-StandardError.add(404, "Not Found"); // Manifest file not found
-StandardError.add(415, "Unsupported Media Type"); // Invalid YAML, Invalid manifest structure
-StandardError.add(416, "Range Not Satisfiable"); // Action or Input missing or invalid
-StandardError.add(422, "Unprocessable Content"); // Got a null when non-null expected
-StandardError.add(500, "Internal Server Error"); // Unexpected
-StandardError.add(502, "Bad Gateway"); // Upstream dependency (e.g. JEC) returned an error
-StandardError.add(503, "Service Unavailable"); // App not configured or dependency unavailable
-StandardError.add(507, "Insufficient Storage"); // Failed to write output file
+// Pre-register every 4xx/5xx status code in the IANA HTTP Status Code
+// Registry (https://www.iana.org/assignments/http-status-codes/) so
+// downstream clients get a complete starting set rather than only the
+// handful this project happened to need first. Titles follow RFC 9110
+// where it renamed a reason phrase (e.g. 422 "Unprocessable Content",
+// 413 "Content Too Large"). 418 is intentionally omitted: RFC 9110
+// §15.5.19 reserves it as "(Unused)" and defines no semantics for it.
+StandardError.add(400, "Bad Request");
+StandardError.add(401, "Unauthorized");
+StandardError.add(402, "Payment Required");
+StandardError.add(403, "Forbidden");
+StandardError.add(404, "Not Found");
+StandardError.add(405, "Method Not Allowed");
+StandardError.add(406, "Not Acceptable");
+StandardError.add(407, "Proxy Authentication Required");
+StandardError.add(408, "Request Timeout");
+StandardError.add(409, "Conflict");
+StandardError.add(410, "Gone");
+StandardError.add(411, "Length Required");
+StandardError.add(412, "Precondition Failed");
+StandardError.add(413, "Content Too Large");
+StandardError.add(414, "URI Too Long");
+StandardError.add(415, "Unsupported Media Type");
+StandardError.add(416, "Range Not Satisfiable");
+StandardError.add(417, "Expectation Failed");
+StandardError.add(421, "Misdirected Request");
+StandardError.add(422, "Unprocessable Content");
+StandardError.add(423, "Locked");
+StandardError.add(424, "Failed Dependency");
+StandardError.add(425, "Too Early");
+StandardError.add(426, "Upgrade Required");
+StandardError.add(428, "Precondition Required");
+StandardError.add(429, "Too Many Requests");
+StandardError.add(431, "Request Header Fields Too Large");
+StandardError.add(451, "Unavailable For Legal Reasons");
+StandardError.add(500, "Internal Server Error");
+StandardError.add(501, "Not Implemented");
+StandardError.add(502, "Bad Gateway");
+StandardError.add(503, "Service Unavailable");
+StandardError.add(504, "Gateway Timeout");
+StandardError.add(505, "HTTP Version Not Supported");
+StandardError.add(506, "Variant Also Negotiates");
+StandardError.add(507, "Insufficient Storage");
+StandardError.add(508, "Loop Detected");
+StandardError.add(510, "Not Extended");
+StandardError.add(511, "Network Authentication Required");
 
 /**
  * Standard shell exit codes

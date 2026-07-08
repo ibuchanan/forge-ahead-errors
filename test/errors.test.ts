@@ -213,6 +213,26 @@ describe("StandardError", () => {
 
       expect(allRegistered).toBe(true);
     });
+
+    it("should pre-register every IANA-assigned 4xx and 5xx status code", () => {
+      // https://www.iana.org/assignments/http-status-codes/
+      const ianaAssignedStatuses = [
+        400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413,
+        414, 415, 416, 417, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451,
+        500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
+      ];
+
+      for (const status of ianaAssignedStatuses) {
+        expect(StandardError.types.has(status)).toBe(true);
+      }
+    });
+
+    it("should not pre-register 418, which IANA reserves as unused", () => {
+      // RFC 9110 §15.5.19 defines no semantics for 418 and marks it
+      // "(Unused)" in the IANA registry, so it stays a good example of an
+      // unregistered code that falls back to 500 via getOrDefault().
+      expect(StandardError.types.has(418)).toBe(false);
+    });
   });
 
   describe("static getOrDefault() method", () => {
