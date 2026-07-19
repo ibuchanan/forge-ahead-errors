@@ -1,6 +1,6 @@
 {
   "name": "@forge-ahead/errors",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
@@ -17,19 +17,26 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "changelog": "git cliff",
-    "check": "npm run lint:check && npm run format:check && npm run typecheck",
+    "changelog": "touch CHANGELOG.md && git cliff --offline --unreleased --prepend CHANGELOG.md",
+    "check": "lefthook run pre-push --force",
     "clean": "rm -rf ./node_modules && rm package-lock.json && rm -rf ./dist",
     "dev": "tsdown --watch",
     "format": "biome format --write",
     "format:check": "biome format",
+    "lint": "lefthook run lint",
     "lint:check": "biome lint",
     "lint:fix": "biome lint --write",
-    "prepare": "npm run build",
+    "prepare": "lefthook install",
+    "release:prepare": "scripts/release-prepare.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
     "typecheck": "tsc --noEmit"
+  },
+  "overrides": {
+    "rolldown-plugin-dts": {
+      "yuku-parser": "0.6.3"
+    }
   },
   "dependencies": {
     "neverthrow": "^8.2"
@@ -43,10 +50,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "overrides": {
-    "rolldown-plugin-dts": {
-      "yuku-parser": "0.6.3"
-    }
   }
 }
