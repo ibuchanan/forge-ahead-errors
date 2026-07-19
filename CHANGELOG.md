@@ -1,3 +1,13 @@
+## [0.1.2] - 2026-07-19
+
+### 🐛 Bug Fixes
+
+- *(build)* Fix prepare script breaking git-dependency installs
+
+### 📚 Documentation
+
+- *(changelog)* Regenerate full changelog history
+
 ## [0.1.1] - 2026-07-19
 
 ### 🐛 Bug Fixes
