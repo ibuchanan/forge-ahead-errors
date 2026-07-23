@@ -4,7 +4,7 @@ export default defineConfig({
   entry: {
     index: "./src/errors.ts",
   },
-  format: ["esm"],
+  format: ["esm", "cjs"],
   sourcemap: true,
   target: "node22",
 });
