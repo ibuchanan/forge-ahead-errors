@@ -1,3 +1,9 @@
+## [0.1.3] - 2026-07-23
+
+### 🐛 Bug Fixes
+
+- *(build)* Emit dual ESM/CJS output for Forge bundler compatibility
+
 ## [0.1.2] - 2026-07-19
 
 ### 🐛 Bug Fixes
