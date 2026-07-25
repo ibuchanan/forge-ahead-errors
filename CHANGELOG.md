@@ -1,3 +1,9 @@
+## [0.2.0] - 2026-07-25
+
+### 🚀 Features
+
+- Add problemDetails, validateHttpResponse, and error context
+
 ## [0.1.3] - 2026-07-23
 
 ### 🐛 Bug Fixes
