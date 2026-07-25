@@ -382,13 +382,18 @@ export function toErrorMessage(error: unknown): string {
  * }
  * ```
  */
-export function toProblemDetails(error: unknown, status = 500): ProblemDetails {
+export function toProblemDetails(
+  error: unknown,
+  status = 500,
+  context?: string,
+): ProblemDetails {
   if (isProblemDetails(error)) {
     return error;
   }
-  const result = StandardError.getOrDefault(status).error(
-    toErrorMessage(error),
-  );
+  const message = context
+    ? `${context}: ${toErrorMessage(error)}`
+    : toErrorMessage(error);
+  const result = StandardError.getOrDefault(status).error(message);
   if (result.isErr()) {
     return result.error;
   }
@@ -417,8 +422,82 @@ export function toProblemDetails(error: unknown, status = 500): ProblemDetails {
 export function problemResult<T = never>(
   error: unknown,
   status = 500,
+  context?: string,
 ): Result<T, ProblemDetails> {
-  return err(toProblemDetails(error, status));
+  return err(toProblemDetails(error, status, context));
+}
+
+/**
+ * Build a `ProblemDetails` object directly, without going through a `Result`.
+ *
+ * `StandardError.getOrDefault(status).error(...)` always returns `Err` (its
+ * `Ok` type is `never`), so unwrapping it here is safe. This is the
+ * unwrapped counterpart to `problemResult` for call sites that just want the
+ * `ProblemDetails` value — e.g. to embed as the `error` field of a JSON
+ * response, rather than to return as a `Result`.
+ *
+ * @param status - HTTP status code (looked up via StandardError.getOrDefault)
+ * @param message - Human-readable explanation specific to this occurrence
+ * @param timestamp - Optional ISO 8601 timestamp (defaults to now)
+ * @param instance - Optional URI reference identifying this specific occurrence
+ * @returns A `ProblemDetails` object (not wrapped in a `Result`)
+ *
+ * @example
+ * ```typescript
+ * return { success: false, error: problemDetails(404, "Workspace not found") };
+ * ```
+ */
+export function problemDetails(
+  status: number,
+  message: string,
+  timestamp?: string,
+  instance?: string,
+): ProblemDetails {
+  return StandardError.getOrDefault(status)
+    .error(message, timestamp, instance)
+    ._unsafeUnwrapErr();
+}
+
+/**
+ * Minimal shape shared by the Web Fetch API `Response` and other
+ * fetch-like response types (e.g. platform-specific `fetch` wrappers),
+ * covering the methods needed to validate and read an HTTP response.
+ */
+export interface HttpLikeResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text(): Promise<string>;
+}
+
+/**
+ * Validate an HTTP response and convert a non-ok response into a
+ * `ResultAsync` error, using `Result` instead of throwing.
+ *
+ * @param response - Any fetch-like response object
+ * @param context - Short description of the operation for the error message
+ * @param status - Status code to use if reading the error body itself fails (default: 502)
+ * @returns `ResultAsync` resolving to `ok(response)` if `response.ok`, or `err(ProblemDetails)` otherwise
+ */
+export function validateHttpResponse<T extends HttpLikeResponse>(
+  response: T,
+  context: string,
+  status = 502,
+): ResultAsync<T, ProblemDetails> {
+  if (response.ok) {
+    return okAsync(response);
+  }
+  return fromPromise(response.text(), (e) =>
+    toProblemDetails(e, status),
+  ).andThen((errorText) =>
+    errAsync(
+      StandardError.getOrDefault(response.status)
+        .error(
+          `Failed to ${context}: ${response.status} ${response.statusText} - ${errorText}`,
+        )
+        ._unsafeUnwrapErr(),
+    ),
+  );
 }
 
 export const ShellExitCodes = new Map<number, string>([

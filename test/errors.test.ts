@@ -8,15 +8,17 @@
  * @see {@link https://nodejs.org/api/process.html#exit-codes|Node.js process exit codes}
  */
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type ProblemDetails,
   isProblemDetails,
+  problemDetails,
   problemResult,
   ShellExitCodes,
   StandardError,
   toErrorMessage,
   toProblemDetails,
+  validateHttpResponse,
 } from "../src/errors";
 
 // Codes used only in tests — cleaned up after each test to prevent shared
@@ -629,6 +631,147 @@ describe("toProblemDetails", () => {
     const pd = toProblemDetails(new Error("test"));
     expect(isProblemDetails(pd)).toBe(true);
   });
+
+  it("should prepend context to the message when error is not a ProblemDetails", () => {
+    const error = new Error("network timeout");
+    const pd = toProblemDetails(error, 502, "fetching schema");
+    expect(pd.detail).toBe("fetching schema: network timeout");
+    expect(pd.status).toBe(502);
+  });
+
+  it("should ignore status and context when error is already a ProblemDetails", () => {
+    const original = StandardError.getOrDefault(404)
+      .error("original")
+      .match(expectErr(), (problemDetails) => problemDetails);
+    const result = toProblemDetails(original, 502, "fetching schema");
+    expect(result).toBe(original);
+  });
+});
+
+describe("problemDetails", () => {
+  it("should return a ProblemDetails, not a Result, for a registered status code", () => {
+    const pd = problemDetails(404, "Resource not found");
+    expect(pd.status).toBe(404);
+    expect(pd.title).toBe("Not Found");
+    expect(pd.detail).toBe("Resource not found");
+    expect(pd.type).toBe("https://httpstatuses.io/404");
+    expect(typeof (pd as unknown as { isErr?: unknown }).isErr).not.toBe(
+      "function",
+    );
+  });
+
+  it("should fall back to the 500 default for an unregistered status code", () => {
+    const pd = problemDetails(418, "Teapot error");
+    expect(pd.status).toBe(500);
+    expect(pd.title).toBe("Internal Server Error");
+    expect(pd.detail).toBe("Teapot error");
+  });
+
+  it("should pass through optional timestamp and instance unchanged", () => {
+    const timestamp = "2024-02-14T12:00:00.000Z";
+    const instance = "https://api.example.com/resource";
+    const pd = problemDetails(403, "Access denied", timestamp, instance);
+    expect(pd.timestamp).toBe(timestamp);
+    expect(pd.instance).toBe(instance);
+  });
+
+  it("should produce a current ISO 8601 timestamp when timestamp is omitted", () => {
+    const before = Date.now();
+    const pd = problemDetails(500, "Server error");
+    const after = Date.now();
+
+    expect(() => new Date(pd.timestamp)).not.toThrow();
+    const parsed = new Date(pd.timestamp).getTime();
+    expect(parsed).toBeGreaterThanOrEqual(before);
+    expect(parsed).toBeLessThanOrEqual(after);
+  });
+});
+
+describe("validateHttpResponse", () => {
+  it("should resolve to ok(response) without calling text() when response.ok is true", async () => {
+    const text = vi.fn().mockResolvedValue("should not be read");
+    const response = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text,
+    };
+
+    const result = await validateHttpResponse(response, "fetch schema");
+
+    expect(result.isOk()).toBe(true);
+    result.match(
+      (value) => expect(value).toBe(response),
+      () => {
+        throw new Error("expected an Ok result");
+      },
+    );
+    expect(text).not.toHaveBeenCalled();
+  });
+
+  it("should resolve to err(ProblemDetails) using response.status when response.ok is false", async () => {
+    const response = {
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      text: vi.fn().mockResolvedValue("workspace missing"),
+    };
+
+    const result = await validateHttpResponse(response, "fetch schema");
+
+    expect(result.isErr()).toBe(true);
+    result.match(expectErr(), (pd) => {
+      expect(pd.status).toBe(404);
+      expect(pd.detail).toContain("fetch schema");
+      expect(pd.detail).toContain("404");
+      expect(pd.detail).toContain("Not Found");
+      expect(pd.detail).toContain("workspace missing");
+    });
+  });
+
+  it("should use the status parameter's default (502) when reading the body fails", async () => {
+    const response = {
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      text: vi.fn().mockRejectedValue(new Error("stream errored")),
+    };
+
+    const result = await validateHttpResponse(response, "fetch schema");
+
+    expect(result.isErr()).toBe(true);
+    result.match(expectErr(), (pd) => {
+      expect(pd.status).toBe(502);
+    });
+  });
+
+  it("should use an overridden status parameter when reading the body fails", async () => {
+    const response = {
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      text: vi.fn().mockRejectedValue(new Error("stream errored")),
+    };
+
+    const result = await validateHttpResponse(response, "fetch schema", 400);
+
+    expect(result.isErr()).toBe(true);
+    result.match(expectErr(), (pd) => {
+      expect(pd.status).toBe(400);
+    });
+  });
+
+  it("should accept a plain object literal without requiring instanceof Response", async () => {
+    const response = {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: async () => "",
+    };
+
+    const result = await validateHttpResponse(response, "submit mapping");
+    expect(result.isOk()).toBe(true);
+  });
 });
 
 describe("problemResult", () => {
@@ -685,5 +828,28 @@ describe("problemResult", () => {
     problemResult(new Error("test")).match(expectErr(), (problemDetails) => {
       expect(isProblemDetails(problemDetails)).toBe(true);
     });
+  });
+
+  it("should prepend context to the message when error is not a ProblemDetails", () => {
+    problemResult(new Error("network timeout"), 502, "fetching schema").match(
+      expectErr(),
+      (problemDetails) => {
+        expect(problemDetails.detail).toBe("fetching schema: network timeout");
+        expect(problemDetails.status).toBe(502);
+      },
+    );
+  });
+
+  it("should ignore status and context when error is already a ProblemDetails", () => {
+    const original = StandardError.getOrDefault(404)
+      .error("original")
+      .match(expectErr(), (problemDetails) => problemDetails);
+
+    problemResult(original, 502, "fetching schema").match(
+      expectErr(),
+      (problemDetails) => {
+        expect(problemDetails).toBe(original);
+      },
+    );
   });
 });
