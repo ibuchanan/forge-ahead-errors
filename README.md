@@ -92,8 +92,8 @@ result.match(
 Use Node 22 or newer and npm for the local package workflow:
 
 ```sh
-npm install
-npm run build
+npm ci
+npm run check
 ```
 
 ## Development
@@ -104,7 +104,8 @@ Common package scripts:
 | --- | --- |
 | `npm run build` | Build the ESM package with `tsdown`. |
 | `npm run dev` | Rebuild with `tsdown --watch`. |
-| `npm run check` | Run lint, format, and TypeScript checks. |
+| `npm run check` | Run formatting, linting, typechecking, tests, and the package build. |
+| `npm run release:check` | Run the full release preflight, including coverage and package contents. |
 | `npm run format` | Format files with Biome. |
 | `npm run lint:fix` | Apply Biome lint fixes. |
 | `npm test` | Run the Vitest test suite once. |
