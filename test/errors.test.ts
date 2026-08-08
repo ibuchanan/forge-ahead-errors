@@ -504,14 +504,14 @@ describe("isProblemDetails", () => {
     expect(isProblemDetails(new Error("oops"))).toBe(false);
   });
 
-  it("should return false when type field is missing", () => {
+  it("should accept a partial ProblemDetails object with extensions", () => {
     const candidate = {
       title: "Not Found",
       status: 404,
       detail: "Resource not found",
-      timestamp: "2024-01-01T00:00:00.000Z",
+      traceId: "abc-123",
     };
-    expect(isProblemDetails(candidate)).toBe(false);
+    expect(isProblemDetails(candidate)).toBe(true);
   });
 
   it("should return false when status is a string instead of number", () => {
@@ -544,6 +544,12 @@ describe("toErrorMessage", () => {
       .error("Not here")
       .match(expectErr(), (problemDetails) => problemDetails);
     expect(toErrorMessage(pd)).toBe("Not here");
+  });
+
+  it("should fall back to the title for ProblemDetails without detail", () => {
+    expect(toErrorMessage({ title: "Bad Request", status: 400 })).toBe(
+      "Bad Request",
+    );
   });
 
   it("should return the message from an Error instance", () => {
@@ -585,6 +591,17 @@ describe("toErrorMessage", () => {
 });
 
 describe("toProblemDetails", () => {
+  it("should pass through partial ProblemDetails unchanged", () => {
+    const original = {
+      type: "about:blank",
+      title: "Bad Request",
+      status: 400,
+      traceId: "abc-123",
+    };
+
+    expect(toProblemDetails(original)).toBe(original);
+  });
+
   it("should pass through an existing ProblemDetails unchanged", () => {
     const original = StandardError.getOrDefault(404)
       .error("original")
@@ -727,6 +744,112 @@ describe("validateHttpResponse", () => {
       expect(pd.detail).toContain("Not Found");
       expect(pd.detail).toContain("workspace missing");
     });
+  });
+
+  it("should preserve an unregistered upstream response status", async () => {
+    const response = {
+      ok: false,
+      status: 418,
+      statusText: "I'm a teapot",
+      text: vi.fn().mockResolvedValue("short and stout"),
+    };
+
+    const result = await validateHttpResponse(response, "brew tea");
+
+    result.match(expectErr(), (pd) => {
+      expect(pd.status).toBe(418);
+      expect(pd.title).toBe("I'm a teapot");
+      expect(pd.type).toBe("https://httpstatuses.io/418");
+      expect(pd.detail).toContain("short and stout");
+    });
+  });
+
+  it("should truncate error detail from text-only responses", async () => {
+    const response = {
+      ok: false,
+      status: 413,
+      statusText: "Payload Too Large",
+      text: vi.fn().mockResolvedValue("0123456789abcdef"),
+    };
+
+    const result = await validateHttpResponse(response, "upload data", 502, {
+      maxErrorBodyBytes: 10,
+    });
+
+    result.match(expectErr(), (pd) => {
+      expect(pd.detail).toContain("0123456789… [truncated]");
+      expect(pd.detail).not.toContain("abcdef");
+    });
+  });
+
+  it("should stream a bounded error body without calling text()", async () => {
+    const reader = {
+      read: vi
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode("123456"),
+        })
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode("789012"),
+        }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+    };
+    const text = vi
+      .fn()
+      .mockRejectedValue(new Error("text() must not be called"));
+    const response = {
+      ok: false,
+      status: 413,
+      statusText: "Payload Too Large",
+      body: { getReader: () => reader },
+      text,
+    };
+
+    const result = await validateHttpResponse(response, "upload data", 502, {
+      maxErrorBodyBytes: 10,
+    });
+
+    result.match(expectErr(), (pd) => {
+      expect(pd.detail).toContain("1234567890… [truncated]");
+    });
+    expect(text).not.toHaveBeenCalled();
+    expect(reader.cancel).toHaveBeenCalledOnce();
+  });
+
+  it("should not truncate a streamed body exactly at the limit", async () => {
+    const reader = {
+      read: vi
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode("1234567890"),
+        })
+        .mockResolvedValueOnce({ done: true }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+    };
+    const text = vi
+      .fn()
+      .mockRejectedValue(new Error("text() must not be called"));
+    const response = {
+      ok: false,
+      status: 413,
+      statusText: "Payload Too Large",
+      body: { getReader: () => reader },
+      text,
+    };
+
+    const result = await validateHttpResponse(response, "upload data", 502, {
+      maxErrorBodyBytes: 10,
+    });
+
+    result.match(expectErr(), (pd) => {
+      expect(pd.detail).toContain("1234567890");
+      expect(pd.detail).not.toContain("[truncated]");
+    });
+    expect(text).not.toHaveBeenCalled();
+    expect(reader.cancel).not.toHaveBeenCalled();
   });
 
   it("should use the status parameter's default (502) when reading the body fails", async () => {
