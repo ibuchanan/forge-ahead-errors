@@ -1,3 +1,22 @@
+## [0.2.1] - 2026-08-09
+
+### 🐛 Bug Fixes
+
+- *(errors)* Harden HTTP error normalization
+- *(errors)* Isolate StandardError registry
+
+### 💼 Other
+
+- *(release)* Make release checks reproducible
+
+### 📚 Documentation
+
+- Add Forge error-handling documentation
+
+### ⚙️ Miscellaneous Tasks
+
+- *(lefthook)* Simplify output
+
 ## [0.2.0] - 2026-07-25
 
 ### 🚀 Features
