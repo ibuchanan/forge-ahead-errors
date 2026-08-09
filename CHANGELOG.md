@@ -1,3 +1,9 @@
+## [0.2.2] - 2026-08-09
+
+### 🚜 Refactor
+
+- *(errors)* Improve error module locality
+
 ## [0.2.1] - 2026-08-09
 
 ### 🐛 Bug Fixes
