@@ -90,11 +90,17 @@ export class StandardError {
    */
   readonly title: string;
 
+  static #types = new Map<number, StandardError>();
+
   /**
-   * Static registry of pre-registered error types mapped by status code
-   * @static
+   * A read-only snapshot of registered error types mapped by status code.
+   *
+   * Mutating this map cannot affect the shared registry; use `add()` to
+   * register or replace an error type intentionally.
    */
-  static types = new Map<number, StandardError>();
+  static get types(): ReadonlyMap<number, StandardError> {
+    return new Map(StandardError.#types);
+  }
 
   /**
    * Create a new StandardError instance
@@ -105,6 +111,7 @@ export class StandardError {
   constructor(status: number, title: string) {
     this.status = status;
     this.title = title;
+    Object.freeze(this);
   }
 
   /**
@@ -120,7 +127,7 @@ export class StandardError {
    * ```
    */
   static add(status: number, title: string) {
-    StandardError.types.set(status, new StandardError(status, title));
+    StandardError.#types.set(status, new StandardError(status, title));
   }
 
   /**
@@ -143,8 +150,8 @@ export class StandardError {
    */
   static getOrDefault(statusCode: number): StandardError {
     return (
-      StandardError.types.get(statusCode) ??
-      StandardError.types.get(500) ??
+      StandardError.#types.get(statusCode) ??
+      StandardError.#types.get(500) ??
       new StandardError(500, "Internal Server Error")
     );
   }

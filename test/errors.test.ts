@@ -8,7 +8,7 @@
  * @see {@link https://nodejs.org/api/process.html#exit-codes|Node.js process exit codes}
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type ProblemDetails,
   isProblemDetails,
@@ -20,10 +20,6 @@ import {
   toProblemDetails,
   validateHttpResponse,
 } from "../src/errors";
-
-// Codes used only in tests — cleaned up after each test to prevent shared
-// mutable state from leaking across the suite via StandardError.types.
-const TEST_CODES = [9999, 9001, 9002, 9003, 8888, 7777, 6666];
 
 // Matches the branching consumers are expected to use (see README `.match()`
 // example): the ok branch throws because every case here is expected to fail.
@@ -154,14 +150,6 @@ describe("StandardError", () => {
   });
 
   describe("static add() method", () => {
-    afterEach(() => {
-      // Remove any test-only codes so they don't leak into other tests
-      // via the shared StandardError.types static Map.
-      for (const code of TEST_CODES) {
-        StandardError.types.delete(code);
-      }
-    });
-
     it("should add error type to static types map", () => {
       const initialSize = StandardError.types.size;
       StandardError.add(9999, "Test Error");
@@ -202,6 +190,29 @@ describe("StandardError", () => {
 
       const retrieved = StandardError.types.get(500);
       expect(retrieved).toBeInstanceOf(StandardError);
+    });
+
+    it("should isolate the registry from mutations to a types snapshot", () => {
+      expect(Object.isFrozen(StandardError.types.get(404))).toBe(true);
+
+      const snapshot = StandardError.types as Map<number, StandardError>;
+      const original404 = snapshot.get(404);
+      const original500 = snapshot.get(500);
+
+      try {
+        snapshot.delete(500);
+        snapshot.set(404, new StandardError(503, "Poisoned registry"));
+
+        expect(StandardError.getOrDefault(404).status).toBe(404);
+        expect(StandardError.getOrDefault(500).status).toBe(500);
+      } finally {
+        if (original404) {
+          snapshot.set(404, original404);
+        }
+        if (original500) {
+          snapshot.set(500, original500);
+        }
+      }
     });
   });
 
@@ -284,8 +295,6 @@ describe("StandardError", () => {
 
       expect(error.status).toBe(8888);
       expect(error.title).toBe("Custom Error");
-
-      StandardError.types.delete(8888);
     });
 
     it("should still default to 500 for unregistered codes even after adding custom ones", () => {
@@ -294,8 +303,6 @@ describe("StandardError", () => {
 
       expect(error.status).toBe(500);
       expect(error.title).toBe("Internal Server Error");
-
-      StandardError.types.delete(7777);
     });
   });
 
