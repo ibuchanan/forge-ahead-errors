@@ -74,6 +74,28 @@ result.match(
 
 Pass `maxErrorBodyBytes` to `validateHttpResponse` when a different maximum is appropriate. The value must be a positive safe integer.
 
+## Testing helpers
+
+The `@forge-ahead/errors/testing` subpath exports `expectOk` and `expectErr` for unwrapping `Result` values in Vitest tests:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { expectOk } from "@forge-ahead/errors/testing";
+import { requireManifestPath } from "./src/manifest";
+
+describe("requireManifestPath", () => {
+  it("returns the path when present", () => {
+    const path = expectOk(requireManifestPath("manifest.yml"));
+    expect(path).toBe("manifest.yml");
+  });
+});
+```
+
+- `expectOk(result)` asserts the result is `Ok` and returns the value.
+- `expectErr(result)` asserts the result is `Err` and returns the error.
+
+Both helpers produce a readable failure message that includes the unexpected variant via `util.inspect`.
+
 ## Verify the checkout
 
 ```sh

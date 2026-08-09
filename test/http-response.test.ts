@@ -9,14 +9,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { validateHttpResponse } from "../src/errors";
-
-// Matches the branching consumers are expected to use (see README `.match()`
-// example): the ok branch throws because every case here is expected to fail.
-function expectErr(): () => never {
-  return () => {
-    throw new Error("expected an Err result");
-  };
-}
+import { expectErr, expectOk } from "../src/testing";
 
 describe("validateHttpResponse", () => {
   it("should resolve to ok(response) without calling text() when response.ok is true", async () => {
@@ -30,13 +23,7 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "fetch schema");
 
-    expect(result.isOk()).toBe(true);
-    result.match(
-      (value) => expect(value).toBe(response),
-      () => {
-        throw new Error("expected an Ok result");
-      },
-    );
+    expect(expectOk(result)).toBe(response);
     expect(text).not.toHaveBeenCalled();
   });
 
@@ -50,14 +37,12 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "fetch schema");
 
-    expect(result.isErr()).toBe(true);
-    result.match(expectErr(), (pd) => {
-      expect(pd.status).toBe(404);
-      expect(pd.detail).toContain("fetch schema");
-      expect(pd.detail).toContain("404");
-      expect(pd.detail).toContain("Not Found");
-      expect(pd.detail).toContain("workspace missing");
-    });
+    const pd = expectErr(result);
+    expect(pd.status).toBe(404);
+    expect(pd.detail).toContain("fetch schema");
+    expect(pd.detail).toContain("404");
+    expect(pd.detail).toContain("Not Found");
+    expect(pd.detail).toContain("workspace missing");
   });
 
   it("should preserve an unregistered upstream response status", async () => {
@@ -70,12 +55,11 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "brew tea");
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.status).toBe(418);
-      expect(pd.title).toBe("I'm a teapot");
-      expect(pd.type).toBe("https://httpstatuses.io/418");
-      expect(pd.detail).toContain("short and stout");
-    });
+    const pd = expectErr(result);
+    expect(pd.status).toBe(418);
+    expect(pd.title).toBe("I'm a teapot");
+    expect(pd.type).toBe("https://httpstatuses.io/418");
+    expect(pd.detail).toContain("short and stout");
   });
 
   it("should truncate error detail from text-only responses", async () => {
@@ -90,10 +74,9 @@ describe("validateHttpResponse", () => {
       maxErrorBodyBytes: 10,
     });
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.detail).toContain("0123456789… [truncated]");
-      expect(pd.detail).not.toContain("abcdef");
-    });
+    const pd = expectErr(result);
+    expect(pd.detail).toContain("0123456789… [truncated]");
+    expect(pd.detail).not.toContain("abcdef");
   });
 
   it("should truncate text-only UTF-8 text at a complete character boundary", async () => {
@@ -108,10 +91,9 @@ describe("validateHttpResponse", () => {
       maxErrorBodyBytes: 2,
     });
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.detail).toContain("A… [truncated]");
-      expect(pd.detail).not.toContain("�");
-    });
+    const pd = expectErr(result);
+    expect(pd.detail).toContain("A… [truncated]");
+    expect(pd.detail).not.toContain("\uFFFD");
   });
 
   it("should stream a bounded error body without calling text()", async () => {
@@ -143,9 +125,8 @@ describe("validateHttpResponse", () => {
       maxErrorBodyBytes: 10,
     });
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.detail).toContain("1234567890… [truncated]");
-    });
+    const pd = expectErr(result);
+    expect(pd.detail).toContain("1234567890… [truncated]");
     expect(text).not.toHaveBeenCalled();
     expect(reader.cancel).toHaveBeenCalledOnce();
   });
@@ -176,10 +157,9 @@ describe("validateHttpResponse", () => {
       maxErrorBodyBytes: 10,
     });
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.detail).toContain("1234567890");
-      expect(pd.detail).not.toContain("[truncated]");
-    });
+    const pd = expectErr(result);
+    expect(pd.detail).toContain("1234567890");
+    expect(pd.detail).not.toContain("[truncated]");
     expect(text).not.toHaveBeenCalled();
     expect(reader.cancel).not.toHaveBeenCalled();
   });
@@ -204,10 +184,9 @@ describe("validateHttpResponse", () => {
       maxErrorBodyBytes: 2,
     });
 
-    result.match(expectErr(), (pd) => {
-      expect(pd.detail).toContain("A… [truncated]");
-      expect(pd.detail).not.toContain("�");
-    });
+    const pd = expectErr(result);
+    expect(pd.detail).toContain("A… [truncated]");
+    expect(pd.detail).not.toContain("\uFFFD");
     expect(reader.cancel).toHaveBeenCalledOnce();
   });
 
@@ -221,10 +200,8 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "fetch schema");
 
-    expect(result.isErr()).toBe(true);
-    result.match(expectErr(), (pd) => {
-      expect(pd.status).toBe(502);
-    });
+    const pd = expectErr(result);
+    expect(pd.status).toBe(502);
   });
 
   it("should use an overridden status parameter when reading the body fails", async () => {
@@ -237,10 +214,8 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "fetch schema", 400);
 
-    expect(result.isErr()).toBe(true);
-    result.match(expectErr(), (pd) => {
-      expect(pd.status).toBe(400);
-    });
+    const pd = expectErr(result);
+    expect(pd.status).toBe(400);
   });
 
   it("should accept a plain object literal without requiring instanceof Response", async () => {
@@ -252,6 +227,6 @@ describe("validateHttpResponse", () => {
     };
 
     const result = await validateHttpResponse(response, "submit mapping");
-    expect(result.isOk()).toBe(true);
+    expectOk(result);
   });
 });
