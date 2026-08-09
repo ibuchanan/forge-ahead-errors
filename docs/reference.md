@@ -2,7 +2,7 @@
 
 `@forge-ahead/errors` is a Node.js 22+ TypeScript package that exposes ESM and CommonJS entrypoints.
 
-## Result exports
+## Result utilities (neverthrow re-exports)
 
 The package re-exports these `neverthrow` symbols:
 
@@ -15,7 +15,7 @@ The package re-exports these `neverthrow` symbols:
 | `fromPromise`, `fromSafePromise` | Convert promises to result values. |
 | `safeTry` | Compose result-returning generators. |
 
-## Problem Details types
+## Core Problem Details types and utilities
 
 ### `ProblemDetails`
 
@@ -33,7 +33,7 @@ RFC 9457-compatible problem document shape.
 
 ### `StandardProblemDetails`
 
-Package-generated Problem Details. `type`, `title`, `status`, `detail`, and `timestamp` are required.
+Package-generated Problem Details. `type`, `title`, `status`, `detail`, and `timestamp` are required. When the caller omits `timestamp`, the package generates a canonical UTC ISO-8601 value. A caller-supplied `timestamp` is preserved unchanged; callers are responsible for its format.
 
 ### `ValidationError`
 
@@ -49,7 +49,7 @@ A field-level error.
 
 A `ProblemDetails` value with a required `errors: ValidationError[]` member.
 
-## `StandardError`
+### `StandardError`
 
 `StandardError` associates an HTTP status with a title and produces `Result<never, StandardProblemDetails>` values.
 
@@ -59,15 +59,15 @@ A `ProblemDetails` value with a required `errors: ValidationError[]` member.
 | `status` | `number` | HTTP status associated with the instance. |
 | `title` | `string` | Human-readable title associated with the instance. |
 | `type` | `string` getter | `https://httpstatuses.io/{status}`. |
-| `error` | `(message, timestamp?, instance?) => Result<never, StandardProblemDetails>` | Produces an error result with a current ISO-8601 timestamp when none is supplied. |
+| `error` | `(message, timestamp?, instance?) => Result<never, StandardProblemDetails>` | Produces an error result. When `timestamp` is omitted, it generates a canonical UTC ISO-8601 timestamp; a supplied timestamp is passed through unchanged. |
 | `add` | `(status, title) => void` | Registers or replaces a status/title pair. |
 | `getOrDefault` | `(statusCode) => StandardError` | Returns a registered entry or the 500 entry. |
 | `types` | `ReadonlyMap<number, StandardError>` getter | Returns an isolated snapshot of the registry. |
 | `toExitCode` | `(statusCode) => number` | Returns `1` for every input. |
 
-The registry contains the package’s supported IANA 4xx and 5xx statuses. Status 418 is not pre-registered. `getOrDefault(418)` returns the 500 entry, while a directly constructed `new StandardError(418, "I'm a teapot")` retains 418.
+The registry contains the package's supported IANA 4xx and 5xx statuses. Status 418 is not pre-registered. `getOrDefault(418)` returns the 500 entry, while a directly constructed `new StandardError(418, "I'm a teapot")` retains 418.
 
-## Conversion helpers
+### Problem Details conversion helpers
 
 | Export | Signature | Behavior |
 | --- | --- | --- |
@@ -75,9 +75,9 @@ The registry contains the package’s supported IANA 4xx and 5xx statuses. Statu
 | `toErrorMessage` | `(error: unknown) => string` | Selects Problem Details detail/title, `Error.message`, a non-empty string, or a safe fallback. |
 | `toProblemDetails` | `(error: unknown, status?: number, context?: string) => ProblemDetails` | Passes through Problem Details; otherwise creates a standard problem using fallback status 500 and optional context. |
 | `problemResult` | `<T = never>(error: unknown, status?: number, context?: string) => Result<T, ProblemDetails>` | Wraps `toProblemDetails` in an error result. |
-| `problemDetails` | `(status: number, message: string, timestamp?: string, instance?: string) => StandardProblemDetails` | Produces an unwrapped package-generated problem document. |
+| `problemDetails` | `(status: number, message: string, timestamp?: string, instance?: string) => StandardProblemDetails` | Produces an unwrapped package-generated problem document. It generates a canonical UTC ISO-8601 timestamp when omitted and otherwise passes the supplied timestamp through unchanged. |
 
-## HTTP response validation
+## HTTP response adaptation
 
 ### `HttpLikeResponse`
 
@@ -108,8 +108,10 @@ function validateHttpResponse<T extends HttpLikeResponse>(
 ): ResultAsync<T, ProblemDetails>;
 ```
 
-An `ok` response produces `Ok<T>`. A non-OK response produces a Problem Details error using the response’s actual status and status text. A readable error body is consumed up to the configured byte limit and cancelled when additional data remains. Errors while reading an error body use fallback status 502 unless `status` is supplied.
+An `ok` response produces `Ok<T>`. A non-OK response produces a Problem Details error using the response's actual status and status text. A readable error body is consumed up to the configured byte limit and cancelled when additional data remains. Errors while reading an error body use fallback status 502 unless `status` is supplied.
 
-## `ShellExitCodes`
+## Shell helpers
+
+### `ShellExitCodes`
 
 `ShellExitCodes` is a `Map<number, string>` documenting common shell exit-code meanings. It is descriptive data; it does not perform process termination.
