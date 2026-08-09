@@ -1,3 +1,9 @@
+## [0.3.0] - 2026-08-09
+
+### 🚀 Features
+
+- *(testing)* Add Result assertion helpers for tests
+
 ## [0.2.2] - 2026-08-09
 
 ### 🚜 Refactor
