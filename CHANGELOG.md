@@ -1,3 +1,9 @@
+## [0.3.1] - 2026-09-10
+
+### 💼 Other
+
+- *(deps)* Upgrade development dependencies
+
 ## [0.3.0] - 2026-08-09
 
 ### 🚀 Features
