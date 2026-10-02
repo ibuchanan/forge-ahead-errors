@@ -24,13 +24,7 @@ Run the complete local verification suite before opening a pull request:
 npm run check
 ```
 
-`check` runs these steps sequentially and stops on the first failure:
-
-1. `npm run lint:check` and `npm run format:check` — lint and formatting checks.
-2. `npm run typecheck` — runs `tsc --noEmit`.
-3. `npm run build` — builds JavaScript with tsdown and emits declarations with `tsc --emitDeclarationOnly`.
-4. `npm run test` — runs the Vitest suite once.
-5. `npm run pack:check` — checks the built package contents with `npm pack --dry-run`.
+`check` runs lint, tests, and `pack:check` in parallel. Lint, formatting, and typechecking run in parallel within the lint task. `pack:check` builds the package before running `npm pack --dry-run`, so it packages fresh output. The check fails if any task fails.
 
 Use these focused commands while iterating:
 
@@ -44,7 +38,7 @@ Use these focused commands while iterating:
 | `npm run format:check` | Check formatting without modifying files. |
 | `npm run lint:check` | Run Biome lint checks. |
 | `npm run lint:fix` | Apply Biome lint fixes. |
-| `npm run clean` | Remove `node_modules/`, `dist/`, and `coverage/`. |
+| `npm run clean` | Remove `dist/` and `coverage/`. |
 
 Lefthook configures a pre-commit formatting hook and a pre-push check that runs linting, formatting, typechecking, tests, builds the package, and verifies its package contents.
 
@@ -65,7 +59,7 @@ Lefthook configures a pre-commit formatting hook and a pre-push check that runs 
 
 `npm run build` emits the public package into `dist/`. tsdown bundles the JavaScript entry points and source maps; `tsc --emitDeclarationOnly` emits `.d.ts` files for ESM consumers; the build creates `.d.cts` copies for CommonJS consumers.
 
-Check the files npm would include without publishing a tarball:
+`npm run pack:check` runs the build first, then checks the files npm would include without publishing a tarball:
 
 ```sh
 npm run pack:check
@@ -79,7 +73,7 @@ Generate an unreleased changelog section from conventional commits:
 npm run changelog
 ```
 
-`npm run release:prepare` is a maintainer-only command. It determines the next version with `git cliff`, runs `check` and coverage tests, updates `package.json`, `package-lock.json`, and `CHANGELOG.md`, then creates a release commit and tag and pushes `main` plus that tag to `origin`. Run it only from the intended release branch with a clean, reviewed working tree and push permission.
+`npm run release:prepare` is a maintainer-only command. It determines the next version with `git cliff`, updates `package.json`, `package-lock.json`, and `CHANGELOG.md`, then creates a release commit and tag and pushes `main` plus that tag to `origin`. The script does not run `check` or coverage; rely on the configured pre-push hook for push validation, and run coverage separately when needed. Run it only from the intended release branch with a clean, reviewed working tree and push permission.
 
 ## Troubleshooting
 

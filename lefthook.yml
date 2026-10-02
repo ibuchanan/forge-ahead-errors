@@ -31,9 +31,7 @@ check:
   commands:
     lint:
       run: lefthook run lint
-    build:
-      run: npm run build
     test:
       run: npm run test
-    pack:
+    build:
       run: npm run pack:check
