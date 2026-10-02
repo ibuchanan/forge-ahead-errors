@@ -55,7 +55,7 @@ Lefthook configures a pre-commit formatting hook and pre-push checks for linting
 | --- | --- |
 | `src/errors.ts` | Package implementation and public API exports. |
 | `test/errors.test.ts` | Vitest coverage for error types and conversion helpers. |
-| `tsdown.config.ts` | Produces the `index` entrypoint in ESM and CommonJS formats for Node.js 22. |
+| `tsdown.config.json` | Produces the `index` entrypoint in ESM and CommonJS formats for Node.js 22. |
 | `package.json` | Package metadata, conditional exports, npm scripts, and tool versions. |
 | `biome.json` | Formatting and lint configuration. |
 | `vitest.config.ts` | Node-based Vitest and V8 coverage configuration. |
