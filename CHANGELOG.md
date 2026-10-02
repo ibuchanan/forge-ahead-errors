@@ -1,3 +1,11 @@
+## [0.3.3] - 2026-10-02
+
+### 💼 Other
+
+- Validate package output on push
+- Rely on pre-push release checks
+- Build before checking package contents
+
 ## [0.3.2] - 2026-10-02
 
 ### 💼 Other
