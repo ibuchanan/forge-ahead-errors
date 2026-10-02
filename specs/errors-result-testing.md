@@ -110,7 +110,7 @@ before the cast is evaluated on a mismatch.
       - successful `expectErr` returns the error;
       - failed `expectErr` produces a readable failure message containing the
         value.
-- [ ] `npm run check` passes (format, lint, typecheck, tests, build).
+- [ ] `npm run check` passes (format, lint, typecheck, tests, build, package contents).
 - [ ] The new export is included in the package's `files` list.
 
 ## Usage example

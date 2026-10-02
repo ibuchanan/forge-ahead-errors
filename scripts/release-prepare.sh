@@ -3,7 +3,8 @@ set -eu
 
 VERSION=$(git cliff --offline --bumped-version | sed 's/^v//')
 
-npm run release:check
+npm run check
+npm run test:coverage
 npm version "$VERSION" --no-git-tag-version
 git cliff --offline --tag "v$VERSION" --unreleased --prepend CHANGELOG.md
 

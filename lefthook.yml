@@ -14,11 +14,7 @@ pre-push:
   parallel: true
   commands:
     lint:
-      run: lefthook run lint
-    format:
-      run: npm run format:check
-    test:
-      run: npm run test
+      run: lefthook run check
 
 lint:
   parallel: true
@@ -29,3 +25,15 @@ lint:
       run: npm run format:check
     typecheck:
       run: npm run typecheck
+
+check:
+  parallel: true
+  commands:
+    lint:
+      run: lefthook run lint
+    build:
+      run: npm run build
+    test:
+      run: npm run test
+    pack:
+      run: npm run pack:check

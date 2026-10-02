@@ -102,7 +102,7 @@ Both helpers produce a readable failure message that includes the unexpected var
 npm run check
 ```
 
-This formats-checks, lints, type-checks, tests, and builds the package.
+This checks formatting, lint, types, tests, builds the package, and verifies the package contents.
 
 ## Documentation
 

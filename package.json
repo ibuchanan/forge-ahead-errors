@@ -7,17 +7,17 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.mts",
+        "types": "./dist/errors.d.ts",
         "default": "./dist/index.mjs"
       },
       "require": {
-        "types": "./dist/index.d.cts",
+        "types": "./dist/errors.d.cts",
         "default": "./dist/index.cjs"
       }
     },
     "./testing": {
       "import": {
-        "types": "./dist/testing.d.mts",
+        "types": "./dist/testing.d.ts",
         "default": "./dist/testing.mjs"
       },
       "require": {
@@ -27,16 +27,17 @@
     }
   },
   "main": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "types": "dist/errors.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "sh scripts/build.sh",
     "changelog": "touch CHANGELOG.md && git cliff --offline --unreleased --prepend CHANGELOG.md",
-    "check": "npm run format:check && npm run lint:check && npm run typecheck && npm run test && npm run build",
-    "clean": "rm -rf ./node_modules ./dist ./coverage",
-    "dev": "tsdown --watch",
+    "check": "lefthook run check",
+    "clean": "npm run clean:build",
+    "clean:build": "rm -rf ./dist ./coverage",
+    "clean:install": "npm run clean:build && rm -rf package-lock.json ./node_modules ./cocoindex_code",
     "format": "biome format --write",
     "format:check": "biome format",
     "lint": "lefthook run lint",
@@ -44,7 +45,6 @@
     "lint:fix": "biome lint --write",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "prepare": "npm run build && (lefthook install || true)",
-    "release:check": "npm run check && npm run test:coverage && npm run pack:check",
     "release:prepare": "scripts/release-prepare.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
