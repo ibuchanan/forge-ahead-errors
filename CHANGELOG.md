@@ -1,3 +1,9 @@
+## [0.3.2] - 2026-10-02
+
+### 💼 Other
+
+- Use JSON for tsdown configuration
+
 ## [0.3.1] - 2026-09-10
 
 ### 💼 Other
