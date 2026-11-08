@@ -16,30 +16,30 @@
 
 ### 💼 Other
 
-- *(deps)* Upgrade development dependencies
+- _(deps)_ Upgrade development dependencies
 
 ## [0.3.0] - 2026-08-09
 
 ### 🚀 Features
 
-- *(testing)* Add Result assertion helpers for tests
+- _(testing)_ Add Result assertion helpers for tests
 
 ## [0.2.2] - 2026-08-09
 
 ### 🚜 Refactor
 
-- *(errors)* Improve error module locality
+- _(errors)_ Improve error module locality
 
 ## [0.2.1] - 2026-08-09
 
 ### 🐛 Bug Fixes
 
-- *(errors)* Harden HTTP error normalization
-- *(errors)* Isolate StandardError registry
+- _(errors)_ Harden HTTP error normalization
+- _(errors)_ Isolate StandardError registry
 
 ### 💼 Other
 
-- *(release)* Make release checks reproducible
+- _(release)_ Make release checks reproducible
 
 ### 📚 Documentation
 
@@ -47,7 +47,7 @@
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(lefthook)* Simplify output
+- _(lefthook)_ Simplify output
 
 ## [0.2.0] - 2026-07-25
 
@@ -59,49 +59,48 @@
 
 ### 🐛 Bug Fixes
 
-- *(build)* Emit dual ESM/CJS output for Forge bundler compatibility
+- _(build)_ Emit dual ESM/CJS output for Forge bundler compatibility
 
 ## [0.1.2] - 2026-07-19
 
 ### 🐛 Bug Fixes
 
-- *(build)* Fix prepare script breaking git-dependency installs
+- _(build)_ Fix prepare script breaking git-dependency installs
 
 ### 📚 Documentation
 
-- *(changelog)* Regenerate full changelog history
+- _(changelog)_ Regenerate full changelog history
 
 ## [0.1.1] - 2026-07-19
 
 ### 🐛 Bug Fixes
 
-- *(build)* Stabilize install-time build
+- _(build)_ Stabilize install-time build
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(build)* Update release and linting configuration
-- *(release)* V0.1.1
+- _(build)_ Update release and linting configuration
+- _(release)_ V0.1.1
 
 ## [0.1.0] - 2026-07-08
 
 ### 🚀 Features
 
-- *(errors)* Pre-register the full IANA 4xx/5xx status set
+- _(errors)_ Pre-register the full IANA 4xx/5xx status set
 
 ### 🐛 Bug Fixes
 
 - Rollback vitest to 4.1
-- *(build)* Fix monorepo leftovers blocking git-dependency installs
+- _(build)_ Fix monorepo leftovers blocking git-dependency installs
 
 ### 📚 Documentation
 
-- *(oss)* Owner, contributing, license fixes from template
+- _(oss)_ Owner, contributing, license fixes from template
 
 ### 🧪 Testing
 
-- *(errors)* Use match() so tests read as real library usage
+- _(errors)_ Use match() so tests read as real library usage
 
 ### ⚙️ Miscellaneous Tasks
 
 - Set type to module and sort
-

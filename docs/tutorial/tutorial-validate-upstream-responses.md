@@ -38,9 +38,7 @@ export function loadConfiguration(): ResultAsync<
     fetch("https://example.test/configuration"),
     (error) => toProblemDetails(error, 502, "request configuration"),
   )
-    .andThen((response) =>
-      validateHttpResponse(response, "load configuration"),
-    )
+    .andThen((response) => validateHttpResponse(response, "load configuration"))
     .andThen((response) =>
       ResultAsync.fromPromise(
         response.json() as Promise<Configuration>,

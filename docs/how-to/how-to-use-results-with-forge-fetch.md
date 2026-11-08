@@ -39,9 +39,8 @@ function fetchJson<T>(
   request: () => Promise<HttpLikeResponse>,
   context: string,
 ): ResultAsync<T, ProblemDetails> {
-  return ResultAsync.fromPromise(
-    request(),
-    (error) => toProblemDetails(error, 502, context),
+  return ResultAsync.fromPromise(request(), (error) =>
+    toProblemDetails(error, 502, context),
   )
     .andThen((response) => validateHttpResponse(response, context))
     .andThen((response) =>
@@ -77,9 +76,7 @@ export function getIssue(
     () =>
       api
         .asApp()
-        .requestJira(
-          route`/rest/api/3/issue/${issueKey}?fields=summary`,
-        ),
+        .requestJira(route`/rest/api/3/issue/${issueKey}?fields=summary`),
     `read Jira issue ${issueKey}`,
   );
 }
@@ -100,10 +97,7 @@ type ExchangeRate = {
   rate: number;
 };
 
-export function getExchangeRate(): ResultAsync<
-  ExchangeRate,
-  ProblemDetails
-> {
+export function getExchangeRate(): ResultAsync<ExchangeRate, ProblemDetails> {
   return fetchJson(
     () => fetch("https://api.example.com/v1/rates/USD/EUR"),
     "read exchange rate",
