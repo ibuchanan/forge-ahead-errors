@@ -1,3 +1,25 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+## [0.3.4] - 2026-11-08
+
+### 💼 Other
+
+- _(deps)_ Upgrade development dependencies and Vitest config
+
+### 📚 Documentation
+
+- _(readme)_ Fix documentation links and development references
+- Reorganize documentation into Diatasis directories
+
+### 🧪 Testing
+
+- _(problem-details)_ Organize Vitest imports for globals: false
+
+### ⚙️ Miscellaneous Tasks
+
+- _(config)_ Update ignore, Biome, and cliff configuration
 ## [0.3.3] - 2026-10-02
 
 ### 💼 Other
