@@ -108,11 +108,11 @@ This checks formatting, lint, types, tests, builds the package, and verifies the
 
 The Diátaxis documentation set is available in [`docs/`](docs/):
 
-- [Tutorial: validate an upstream response in a Forge function](docs/tutorial-validate-upstream-responses.md)
-- [How-to: return Problem Details from a Forge web trigger](docs/how-to-return-problem-details-from-a-web-trigger.md)
-- [How-to: use Results with Forge internal and external fetches](docs/how-to-use-results-with-forge-fetch.md)
-- [API reference](docs/reference.md)
-- [Explanation: typed errors at Forge boundaries](docs/explanation-typed-errors-at-forge-boundaries.md)
+- [Tutorial: validate an upstream response in a Forge function](docs/tutorial/tutorial-validate-upstream-responses.md)
+- [How-to: return Problem Details from a Forge web trigger](docs/how-to/how-to-return-problem-details-from-a-web-trigger.md)
+- [How-to: use Results with Forge internal and external fetches](docs/how-to/how-to-use-results-with-forge-fetch.md)
+- [API reference](docs/reference/reference.md)
+- [Explanation: typed errors at Forge boundaries](docs/explanation/explanation-typed-errors-at-forge-boundaries.md)
 
 ## Development
 

@@ -28,32 +28,32 @@ npm run check
 
 Use these focused commands while iterating:
 
-| Command | Purpose |
-| --- | --- |
-| `npm test` | Run tests once. |
-| `npm run test:watch` | Run tests in watch mode. |
+| Command                 | Purpose                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| `npm test`              | Run tests once.                                                    |
+| `npm run test:watch`    | Run tests in watch mode.                                           |
 | `npm run test:coverage` | Generate terminal, JSON, and HTML coverage reports in `coverage/`. |
-| `npm run typecheck` | Check TypeScript types without emitting files. |
-| `npm run format` | Apply Biome formatting. |
-| `npm run format:check` | Check formatting without modifying files. |
-| `npm run lint:check` | Run Biome lint checks. |
-| `npm run lint:fix` | Apply Biome lint fixes. |
-| `npm run clean` | Remove `dist/` and `coverage/`. |
+| `npm run typecheck`     | Check TypeScript types without emitting files.                     |
+| `npm run format`        | Apply Biome formatting.                                            |
+| `npm run format:check`  | Check formatting without modifying files.                          |
+| `npm run lint:check`    | Run Biome lint checks.                                             |
+| `npm run lint:fix`      | Apply Biome lint fixes.                                            |
+| `npm run clean`         | Remove `dist/` and `coverage/`.                                    |
 
 Lefthook configures a pre-commit formatting hook and a pre-push check that runs linting, formatting, typechecking, tests, builds the package, and verifies its package contents.
 
 ## Project layout
 
-| Path | Purpose |
-| --- | --- |
-| `src/errors.ts` | Package implementation and public API exports. |
-| `test/errors.test.ts` | Vitest coverage for error types and conversion helpers. |
-| `tsdown.config.json` | Produces the `index` entrypoint in ESM and CommonJS formats for Node.js 22. |
-| `package.json` | Package metadata, conditional exports, npm scripts, and tool versions. |
-| `biome.json` | Formatting and lint configuration. |
-| `vitest.config.ts` | Node-based Vitest and V8 coverage configuration. |
-| `CHANGELOG.md` | Generated release history. |
-| `scripts/release-prepare.sh` | Release preparation automation. |
+| Path                           | Purpose                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `src/errors.ts`                | Package implementation and public API exports.                              |
+| `test/problem-details.test.ts` | Vitest coverage for Problem Details and StandardError helpers.              |
+| `tsdown.config.json`           | Produces the `index` entrypoint in ESM and CommonJS formats for Node.js 22. |
+| `package.json`                 | Package metadata, conditional exports, npm scripts, and tool versions.      |
+| `biome.jsonc`                  | Formatting and lint configuration.                                          |
+| `vitest.config.ts`             | Node-based Vitest and V8 coverage configuration.                            |
+| `CHANGELOG.md`                 | Generated release history.                                                  |
+| `scripts/release-prepare.sh`   | Release preparation automation.                                             |
 
 ## Build output and package contents
 
