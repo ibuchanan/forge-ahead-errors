@@ -10,8 +10,8 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  type ProblemDetails,
   isProblemDetails,
+  type ProblemDetails,
   problemDetails,
   problemResult,
   ShellExitCodes,
