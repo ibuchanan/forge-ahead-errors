@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isProblemDetails,
+  isProblemDetailsWithCode,
   type ProblemDetails,
   problemDetails,
   problemResult,
@@ -550,6 +551,55 @@ describe("isProblemDetails", () => {
       StandardError.getOrDefault(500).error("boom"),
     );
     expect(isProblemDetails(problemDetails)).toBe(true);
+  });
+});
+
+describe("isProblemDetailsWithCode", () => {
+  it("narrows unknown problems carrying a safe integer code", () => {
+    const value: unknown = {
+      type: "https://example.com/problems/conflict",
+      code: -32001,
+    };
+
+    if (!isProblemDetailsWithCode(value)) {
+      throw new Error("Expected a coded problem");
+    }
+    const problem: ProblemDetails = value;
+    const code: number = value.code;
+    expect(problem.type).toBe("https://example.com/problems/conflict");
+    expect(code).toBe(-32001);
+  });
+
+  it("rejects non-problems even when they carry a safe integer code", () => {
+    for (const value of [
+      null,
+      "error",
+      42,
+      {},
+      { code: 7 },
+      { title: 12, code: 7 },
+    ]) {
+      expect(isProblemDetailsWithCode(value)).toBe(false);
+      expect(isProblemDetails(value)).toBe(false);
+    }
+  });
+
+  it("rejects missing and unusable codes without changing problem recognition", () => {
+    for (const code of [undefined, "42", 1.5, NaN, Infinity, 2 ** 53]) {
+      const value = {
+        title: "Upstream error",
+        ...(code !== undefined && { code }),
+      };
+      expect(isProblemDetails(value)).toBe(true);
+      expect(isProblemDetailsWithCode(value)).toBe(false);
+    }
+  });
+
+  it("accepts zero and the safe-integer boundary", () => {
+    for (const code of [0, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]) {
+      const value: unknown = { title: "Domain failure", code };
+      expect(isProblemDetailsWithCode(value)).toBe(true);
+    }
   });
 });
 

@@ -339,6 +339,13 @@ export function isProblemDetails(error: unknown): error is ProblemDetails {
   );
 }
 
+/** Narrow an unknown value to a Problem Details payload with a safe integer code. */
+export function isProblemDetailsWithCode(
+  value: unknown,
+): value is ProblemDetails & { code: number } {
+  return isProblemDetails(value) && Number.isSafeInteger(value.code);
+}
+
 /**
  * Extracts a human-readable message from any thrown value.
  *

@@ -42,6 +42,7 @@ export type {
 } from "./problem-details";
 export {
   isProblemDetails,
+  isProblemDetailsWithCode,
   problemDetails,
   problemResult,
   ShellExitCodes,
