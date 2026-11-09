@@ -20,8 +20,13 @@ export {
   safeTry,
 } from "neverthrow";
 // Caller-defined domain problems
-export type { DomainProblemDetails, ProblemDefinition } from "./domain-problem";
-export { defineProblem } from "./domain-problem";
+export type {
+  CatalogProblemDefinition,
+  DomainProblemDetails,
+  ProblemCatalog,
+  ProblemDefinition,
+} from "./domain-problem";
+export { createProblemCatalog, defineProblem } from "./domain-problem";
 // HTTP response validation
 export type {
   HttpLikeResponse,
