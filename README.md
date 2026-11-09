@@ -4,35 +4,24 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
 
-Typed TypeScript error helpers for Forge Ahead packages. It combines [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) with [`neverthrow`](https://github.com/supermacro/neverthrow) `Result` values, so callers can return structured failures instead of relying on thrown exceptions.
+Typed TypeScript error helpers for Forge Ahead packages. Combine [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) with [`neverthrow`](https://github.com/supermacro/neverthrow) `Result` values to return structured failures explicitly instead of relying on exceptions.
 
-The package targets Node.js 22 or newer and ships both ESM and CommonJS entrypoints. It is currently marked private in `package.json`, so it is not published to the public npm registry.
+Use this library for expected domain failures or HTTP boundary errors in Forge functions, CLIs, and other Node.js consumers. It is not an exception-handling framework or a Forge app. It targets Node.js 22 or newer and ships ESM and CommonJS entrypoints. **This package is private:** it is not available from the public npm registry.
 
-## When to use it
+## Get started
 
-Use this package when a function should make failure explicit in its return type—for example, a [Forge resolver](https://developer.atlassian.com/platform/forge/runtime-reference/forge-resolver/), [web trigger](https://developer.atlassian.com/platform/forge/runtime-reference/web-trigger/), [scheduled trigger](https://developer.atlassian.com/platform/forge/function-reference/scheduled-trigger/), [async-event handler](https://developer.atlassian.com/platform/forge/runtime-reference/async-events-api/), or HTTP client wrapper.
-
-It provides:
-
-- RFC 9457-compatible `ProblemDetails` types, including extension fields and field-validation errors.
-- `StandardError` for consistent HTTP status, title, type, timestamp, and detail values.
-- `problemDetails`, `toProblemDetails`, and `problemResult` to normalize unknown failures.
-- `validateHttpResponse` to preserve non-success upstream HTTP responses as a `ResultAsync`, while limiting captured response-body detail.
-- Re-exports of commonly used `neverthrow` helpers, including `ok`, `err`, `Result`, `ResultAsync`, and `safeTry`.
-
-## Install or use locally
-
-Install the repository dependencies with Node.js 22 and npm:
+In a checkout with Node.js 22 and npm, install dependencies and run the verification suite:
 
 ```sh
 npm ci
+npm run check
 ```
 
-Because the package is private, consume it from a local checkout or workspace that can resolve `@forge-ahead/errors`; do not expect `npm install @forge-ahead/errors` to retrieve it from the public npm registry.
+`npm ci` builds the package through its `prepare` script. `npm run check` runs formatting, lint, typechecking, tests, a build, and an npm package dry run. To consume the package from another project, make this checkout available as a local or workspace dependency that resolves `@forge-ahead/errors`; `npm install @forge-ahead/errors` will not fetch it from the public registry.
 
-## Usage
+## Use a typed failure
 
-Create a typed failure for an expected domain condition and handle it with `Result.match()`:
+Once your project resolves the package, create an expected error and handle both outcomes:
 
 ```ts
 import {
@@ -42,13 +31,10 @@ import {
   type Result,
 } from "@forge-ahead/errors";
 
-export function requireManifestPath(
-  path?: string,
-): Result<string, ProblemDetails> {
+function requireManifestPath(path?: string): Result<string, ProblemDetails> {
   if (!path) {
     return StandardError.getOrDefault(404).error("manifest.yml not found");
   }
-
   return ok(path);
 }
 
@@ -58,70 +44,18 @@ requireManifestPath(undefined).match(
 );
 ```
 
-For an HTTP response, preserve the upstream status and title while keeping error-body retention bounded to 8 KiB by default:
+`StandardError` provides conventional HTTP errors. For your own stable problem types and codes (including CLI or JSON-RPC errors), create a separate application catalog rather than changing the shared HTTP registry. See [How to create a downstream error registry](docs/how-to/how-to-create-a-downstream-error-registry.md).
 
-```ts
-import { validateHttpResponse } from "@forge-ahead/errors";
+## Choose your next step
 
-const response = await fetch("https://example.test/config");
-const result = await validateHttpResponse(response, "fetch configuration");
+- **Learn by doing:** [validate an upstream response in a Forge function](docs/tutorial/tutorial-validate-upstream-responses.md).
+- **Solve a task:** [return Problem Details from a web trigger](docs/how-to/how-to-return-problem-details-from-a-web-trigger.md), [define domain problems and codes](docs/how-to/how-to-define-domain-problems.md), or [use Results with Forge fetches](docs/how-to/how-to-use-results-with-forge-fetch.md).
+- **Look up the API:** [API reference](docs/reference/reference.md), including `validateHttpResponse`, `StandardError`, Problem Details types, and the `@forge-ahead/errors/testing` helpers.
+- **Understand the design:** [typed errors at Forge boundaries](docs/explanation/explanation-typed-errors-at-forge-boundaries.md).
 
-result.match(
-  (validResponse) => validResponse.json(),
-  (problem) => console.error(problem.status, problem.detail),
-);
-```
+## Develop and contribute
 
-Pass `maxErrorBodyBytes` to `validateHttpResponse` when a different maximum is appropriate. The value must be a positive safe integer.
-
-## Testing helpers
-
-The `@forge-ahead/errors/testing` subpath exports `expectOk` and `expectErr` for unwrapping `Result` values in Vitest tests:
-
-```ts
-import { describe, expect, it } from "vitest";
-import { expectOk } from "@forge-ahead/errors/testing";
-import { requireManifestPath } from "./src/manifest";
-
-describe("requireManifestPath", () => {
-  it("returns the path when present", () => {
-    const path = expectOk(requireManifestPath("manifest.yml"));
-    expect(path).toBe("manifest.yml");
-  });
-});
-```
-
-- `expectOk(result)` asserts the result is `Ok` and returns the value.
-- `expectErr(result)` asserts the result is `Err` and returns the error.
-
-Both helpers produce a readable failure message that includes the unexpected variant via `util.inspect`.
-
-## Verify the checkout
-
-```sh
-npm run check
-```
-
-This checks formatting, lint, types, tests, builds the package, and verifies the package contents.
-
-## Documentation
-
-The Diátaxis documentation set is available in [`docs/`](docs/):
-
-- [Tutorial: validate an upstream response in a Forge function](docs/tutorial/tutorial-validate-upstream-responses.md)
-- [How-to: return Problem Details from a Forge web trigger](docs/how-to/how-to-return-problem-details-from-a-web-trigger.md)
-- [How-to: define domain problems and codes](docs/how-to/how-to-define-domain-problems.md)
-- [How-to: use Results with Forge internal and external fetches](docs/how-to/how-to-use-results-with-forge-fetch.md)
-- [API reference](docs/reference/reference.md)
-- [Explanation: typed errors at Forge boundaries](docs/explanation/explanation-typed-errors-at-forge-boundaries.md)
-
-## Development
-
-See [DEVELOPMENT.md](DEVELOPMENT.md) for the local development loop, scripts, project layout, hooks, and release workflow.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for contribution guidance.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the local development loop, code layout, builds, tests, and releases. Contributions and issue reports are welcome through this repository; see [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidance and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
 
 ## License
 
