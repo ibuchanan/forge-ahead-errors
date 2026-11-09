@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [0.4.0] - 2026-11-09
+
+### 🚀 Features
+
+- _(errors)_ Type optional problem code
+- _(errors)_ Add caller-defined domain problems
+- _(errors)_ Add app-owned problem catalogs
+- _(errors)_ Guard problems with safe integer codes
+
+### 📚 Documentation
+
+- Apply updated Biome formatting
+- _(errors)_ Document domain problem codes
+- Improve package entry and error guidance
+
 ## [0.3.4] - 2026-11-08
 
 ### 💼 Other
