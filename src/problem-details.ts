@@ -22,6 +22,11 @@ export interface ProblemDetails {
   detail?: string;
   instance?: string;
   timestamp?: string;
+  /** Application-defined integer code, independent of the HTTP status. The
+   * `isProblemDetails` guard deliberately does not validate this extension:
+   * upstream problems with string codes still pass through unchanged.
+   */
+  code?: number;
   [extension: string]: unknown;
 }
 

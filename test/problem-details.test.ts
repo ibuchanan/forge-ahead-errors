@@ -453,6 +453,30 @@ describe("StandardError", () => {
 });
 
 describe("isProblemDetails", () => {
+  it("allows reading an optional application-defined integer code", () => {
+    const problem: ProblemDetails = { title: "Conflict", code: -32001 };
+    const code: number | undefined = problem.code;
+
+    expect(code).toBe(-32001);
+    expect(isProblemDetails(problem)).toBe(true);
+  });
+
+  it("preserves upstream problems with string codes", () => {
+    const upstream = { title: "Upstream error", code: "E_UPSTREAM" };
+
+    expect(isProblemDetails(upstream)).toBe(true);
+    expect(toProblemDetails(upstream)).toBe(upstream);
+    expect(upstream.code).toBe("E_UPSTREAM");
+  });
+
+  it("accepts problems without a code", () => {
+    const problem: ProblemDetails = { title: "Not Found" };
+    const code: number | undefined = problem.code;
+
+    expect(code).toBeUndefined();
+    expect(isProblemDetails(problem)).toBe(true);
+  });
+
   it("should return true for a valid ProblemDetails object", () => {
     const pd: ProblemDetails = {
       type: "https://httpstatuses.io/404",

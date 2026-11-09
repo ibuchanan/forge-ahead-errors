@@ -29,7 +29,10 @@ RFC 9457-compatible problem document shape.
 | `detail`         | `string`  | No       |
 | `instance`       | `string`  | No       |
 | `timestamp`      | `string`  | No       |
+| `code`           | `number`  | No       |
 | extension member | `unknown` | No       |
+
+`code` is an application-defined integer, independent of HTTP status. `isProblemDetails` does not validate extension codes: upstream problems with string codes still pass through unchanged.
 
 ### `StandardProblemDetails`
 
