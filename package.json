@@ -7,17 +7,17 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/errors.d.ts",
+        "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
       },
       "require": {
-        "types": "./dist/errors.d.cts",
+        "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
     },
     "./testing": {
       "import": {
-        "types": "./dist/testing.d.ts",
+        "types": "./dist/testing.d.mts",
         "default": "./dist/testing.mjs"
       },
       "require": {
@@ -27,7 +27,7 @@
     }
   },
   "main": "dist/index.mjs",
-  "types": "dist/errors.d.ts",
+  "types": "dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -43,12 +43,13 @@
     "lint": "lefthook run lint",
     "lint:check": "biome lint",
     "lint:fix": "biome lint --write",
-    "pack:check": "npm run build && npm pack --dry-run --ignore-scripts",
+    "pack:check": "npm run build && npm run test:types && npm pack --dry-run --ignore-scripts",
     "prepare": "npm run build && (lefthook install || true)",
     "release:prepare": "scripts/release-prepare.sh",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
+    "test:types": "tsc --noEmit --strict --skipLibCheck false --target ES2022 --module NodeNext --moduleResolution NodeNext test/types/consumer.mts test/types/consumer.cts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

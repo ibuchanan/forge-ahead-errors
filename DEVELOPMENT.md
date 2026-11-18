@@ -21,7 +21,7 @@ npm run check
 2. Run `npm test` and `npm run typecheck` while iterating. Use `npm run test:watch` for repeated test runs.
 3. Run `npm run check` before opening a pull request. Follow [CONTRIBUTING.md](CONTRIBUTING.md) for collaboration rules.
 
-`check` delegates to Lefthook: lint (Biome lint, formatting, and TypeScript typechecking), tests, and `pack:check` run in parallel. `pack:check` builds the package and runs `npm pack --dry-run --ignore-scripts` to inspect the publishable files without publishing. Pre-commit runs the repository formatter and stages formatting fixes; pre-push runs `check`.
+`check` delegates to Lefthook: lint (Biome lint, formatting, and TypeScript typechecking), tests, and `pack:check` run in parallel. `pack:check` builds the package, runs `test:types` against its public exports with strict NodeNext ESM and CommonJS consumer fixtures, and runs `npm pack --dry-run --ignore-scripts` to inspect the publishable files without publishing. Pre-commit runs the repository formatter and stages formatting fixes; pre-push runs `check`.
 
 | Command                 | Use                                                    |
 | ----------------------- | ------------------------------------------------------ |
@@ -59,7 +59,7 @@ Changes to the public API should be exported from `src/errors.ts`, covered by te
 
 ## Build and inspect the package
 
-`npm run build` uses tsdown to bundle the root and `./testing` entrypoints as ESM and CommonJS with source maps. It then runs TypeScript declaration-only generation and copies `.d.ts` files to `.d.cts` for CommonJS consumers. The corresponding exports in `package.json` point to files in `dist/`; only `dist/` is included in the npm package contents.
+`npm run build` uses tsdown to bundle the root and `./testing` entrypoints as ESM and CommonJS with source maps. It also bundles declarations using `tsconfig.declarations.json`, emitting `.d.mts` for ESM and `.d.cts` for CommonJS with format-specific relative imports. The declaration config falls back to a minimal build-only Vitest stub when the optional peer is absent; consumers using `./testing` still need real Vitest. The corresponding exports in `package.json` point to files in `dist/`; only `dist/` is included in the npm package contents.
 
 ```sh
 npm run build

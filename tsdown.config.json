@@ -4,6 +4,9 @@
     "testing": "./src/testing.ts"
   },
   "format": ["esm", "cjs"],
+  "dts": {
+    "tsconfig": "./tsconfig.declarations.json"
+  },
   "sourcemap": true,
   "target": "node22",
   "deps": {
