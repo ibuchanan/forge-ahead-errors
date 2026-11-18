@@ -8,6 +8,7 @@
  * @see {@link https://nodejs.org/api/process.html#exit-codes|Node.js process exit codes}
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   isProblemDetails,
@@ -830,5 +831,120 @@ describe("problemResult", () => {
       problemResult(original, 502, "fetching schema"),
     );
     expect(problemDetails).toBe(original);
+  });
+});
+
+describe("Problem Details boundary properties", () => {
+  const text = fc.string({ maxLength: 40 });
+  const standardFields = fc.record(
+    {
+      type: text,
+      title: text,
+      status: fc.integer({ min: 100, max: 599 }),
+      detail: text,
+      instance: text,
+    },
+    { requiredKeys: [] },
+  );
+  const requiredField = fc.oneof(
+    text.map((type) => ({ type })),
+    text.map((title) => ({ title })),
+    fc.integer({ min: 100, max: 599 }).map((status) => ({ status })),
+    text.map((detail) => ({ detail })),
+    text.map((instance) => ({ instance })),
+  );
+  const validProblem = fc
+    .tuple(
+      standardFields,
+      requiredField,
+      fc.record({ timestamp: text }, { requiredKeys: [] }),
+      // Prefix keys so extensions cannot accidentally replace standard fields.
+      fc.dictionary(
+        text.map((key) => `x-${key}`),
+        fc.jsonValue({ maxDepth: 2 }),
+        { maxKeys: 2 },
+      ),
+    )
+    .map(([fields, required, timestamp, extensions]) => ({
+      ...fields,
+      ...required,
+      ...timestamp,
+      ...extensions,
+    }));
+
+  it("accepts partial problems and preserves their identity, including extensions", () => {
+    fc.assert(
+      fc.property(
+        validProblem,
+        fc.integer(),
+        text,
+        (problem, status, context) => {
+          expect(isProblemDetails(problem)).toBe(true);
+          expect(toProblemDetails(problem, status, context)).toBe(problem);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  it.each(["type", "title", "status", "detail", "instance", "timestamp"])(
+    "rejects a defined wrong type for %s, even with other valid members",
+    (member) => {
+      const wrongValue =
+        member === "status"
+          ? fc.oneof(text, fc.boolean(), fc.constant(null), fc.constant({}))
+          : fc.oneof(
+              fc.integer(),
+              fc.boolean(),
+              fc.constant(null),
+              fc.constant({}),
+            );
+      fc.assert(
+        fc.property(validProblem, wrongValue, (problem, value) => {
+          // Retain a valid standard member independently of the mutated member.
+          const anchor =
+            member === "title" ? { detail: "failure" } : { title: "Failure" };
+          expect(
+            isProblemDetails({ ...problem, ...anchor, [member]: value }),
+          ).toBe(false);
+        }),
+        { numRuns: 100 },
+      );
+    },
+  );
+
+  it("recognizes codes exactly when they are safe integers on valid problems", () => {
+    const code = fc.oneof(
+      fc.integer({
+        min: Number.MIN_SAFE_INTEGER,
+        max: Number.MAX_SAFE_INTEGER,
+      }),
+      fc.double(),
+      text,
+      fc.boolean(),
+      fc.constantFrom(
+        undefined,
+        null,
+        0,
+        Number.MIN_SAFE_INTEGER,
+        Number.MAX_SAFE_INTEGER,
+        Number.MIN_SAFE_INTEGER - 1,
+        Number.MAX_SAFE_INTEGER + 1,
+        0.5,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+      ),
+    );
+    fc.assert(
+      fc.property(validProblem, code, (problem, code) => {
+        const candidate = { ...problem, code };
+        expect(isProblemDetails(candidate)).toBe(true);
+        expect(isProblemDetailsWithCode(candidate)).toBe(
+          Number.isSafeInteger(code),
+        );
+      }),
+      { numRuns: 100 },
+    );
   });
 });

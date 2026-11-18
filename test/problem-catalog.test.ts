@@ -1,10 +1,11 @@
+import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   createProblemCatalog,
   defineProblem,
+  type ProblemCatalog,
   problemDetails,
   StandardError,
-  type ProblemCatalog,
 } from "../src/errors";
 
 describe("createProblemCatalog", () => {
@@ -154,5 +155,91 @@ describe("createProblemCatalog", () => {
     expect(
       catalog.get("https://example.test/problems/missing"),
     ).toBeUndefined();
+  });
+
+  const segment = fc.stringMatching(/^[a-z][a-z0-9_-]{0,11}$/);
+  const relativeType = fc
+    .array(segment, { minLength: 1, maxLength: 3 })
+    .map((parts) => parts.join("/"));
+  const baseUri = segment.map((path) => `https://example.test/${path}`);
+
+  it("normalizes slash variants and resolves lookup by name and full type to the same definition", () => {
+    fc.assert(
+      fc.property(baseUri, relativeType, (base, reference) => {
+        const expectedType = `${base}/${reference}`;
+        // Enumerate the small finite variant set instead of sampling within a property.
+        for (const trailing of ["", "/", "///"]) {
+          for (const leading of ["", "/", "///"]) {
+            const catalog = createProblemCatalog(`${base}${trailing}`, {
+              entry: { type: `${leading}${reference}`, title: "Failure" },
+            });
+            const definition = catalog.get("entry");
+            expect(definition?.type).toBe(expectedType);
+            expect(catalog.get(expectedType)).toBe(definition);
+          }
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("preserves absolute type URIs regardless of the catalog base", () => {
+    fc.assert(
+      fc.property(baseUri, segment, (base, reference) => {
+        for (const type of [
+          `urn:example:${reference}`,
+          `https://other.test/${reference}`,
+        ]) {
+          const catalog = createProblemCatalog(base, {
+            entry: { type, title: "Failure" },
+          });
+          expect(catalog.get("entry")?.type).toBe(type);
+          expect(catalog.get(type)).toBe(catalog.get("entry"));
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("rejects duplicate resolved types across relative and absolute reference forms", () => {
+    fc.assert(
+      fc.property(baseUri, relativeType, (base, reference) => {
+        for (const alias of [
+          `/${reference}`,
+          `///${reference}`,
+          `${base}/${reference}`,
+        ]) {
+          expect(() =>
+            createProblemCatalog(base, {
+              first: { type: reference, title: "First" },
+              second: { type: alias, title: "Second" },
+            }),
+          ).toThrow(/duplicate.*type/i);
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("rejects duplicate codes within a catalog but permits reuse across catalogs", () => {
+    fc.assert(
+      fc.property(fc.integer(), (code) => {
+        const first = { type: "first", title: "First", code };
+        const second = { type: "second", title: "Second", code };
+        expect(() =>
+          createProblemCatalog("https://example.test", {
+            first,
+            second,
+          }),
+        ).toThrow(/duplicate.*code/i);
+        const left = createProblemCatalog("https://example.test", { first });
+        const right = createProblemCatalog("https://example.test", { second });
+        expect(left.get("first")?.code).toBe(code);
+        expect(right.get("second")?.code).toBe(code);
+        expect(left.get("second")).toBeUndefined();
+        expect(right.get("first")).toBeUndefined();
+      }),
+      { numRuns: 100 },
+    );
   });
 });
