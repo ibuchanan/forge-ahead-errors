@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [0.4.1] - 2026-11-18
+
+### 🐛 Bug Fixes
+
+- _(build)_ Support optional Vitest and NodeNext consumers
+- _(http)_ Skip empty chunks at the byte limit
+
+### 🧪 Testing
+
+- _(errors)_ Add guard and catalog properties
+
 ## [0.4.0] - 2026-11-09
 
 ### 🚀 Features
