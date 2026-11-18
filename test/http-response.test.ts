@@ -7,6 +7,7 @@
  * @see {@link https://datatracker.ietf.org/doc/html/rfc9457|RFC 9457 Problem Details for HTTP APIs}
  */
 
+import * as fc from "fast-check";
 import { describe, expect, it, vi } from "vitest";
 import { validateHttpResponse } from "../src/errors";
 import { expectErr, expectOk } from "../src/testing";
@@ -228,5 +229,149 @@ describe("validateHttpResponse", () => {
 
     const result = await validateHttpResponse(response, "submit mapping");
     expectOk(result);
+  });
+});
+
+// Valid Unicode scalar values deliberately include 1-, 2-, 3-, and 4-byte UTF-8.
+const unicodeBody = fc
+  .array(
+    fc.oneof(
+      fc.constantFrom("A", "é", "中", "🙂", "\u0000", "\uFEFF"),
+      fc
+        .oneof(
+          fc.integer({ min: 0, max: 0xd7ff }),
+          fc.integer({ min: 0xe000, max: 0x10ffff }),
+        )
+        .map((codePoint) => String.fromCodePoint(codePoint)),
+    ),
+    { maxLength: 32 },
+  )
+  .map((characters) => characters.join(""));
+
+const boundedBody = unicodeBody.chain((body) => {
+  const bytes = new TextEncoder().encode(body);
+  return fc.record({
+    body: fc.constant(body),
+    limit: fc.oneof(
+      fc.integer({ min: 1, max: bytes.length + 2 }),
+      fc.constant(Math.max(1, bytes.length)),
+      fc.constant(Math.max(1, bytes.length - 1)),
+    ),
+    // Duplicate cuts create empty chunks; byte offsets can split a character.
+    cuts: fc.array(fc.integer({ min: 0, max: bytes.length }), {
+      maxLength: 12,
+    }),
+  });
+});
+
+function streamResponse(chunks: Uint8Array[]) {
+  let index = 0;
+  const reader = {
+    read: async () =>
+      index < chunks.length
+        ? { done: false, value: chunks[index++] }
+        : { done: true },
+    cancel: vi.fn(async () => {}),
+  };
+  const response = {
+    ok: false,
+    status: 413,
+    statusText: "Payload Too Large",
+    body: { getReader: () => reader },
+    text: vi.fn(async () => {
+      throw new Error("Streaming must not fall back to text()");
+    }),
+  };
+  return { response, reader };
+}
+
+// Specification oracle: choose among complete-character prefixes, rather than
+// reproducing the reader's incremental decoding and byte-accounting algorithm.
+function expectedBody(body: string, limit: number) {
+  const characters = Array.from(body);
+  const prefixes = Array.from({ length: characters.length + 1 }, (_, length) =>
+    characters.slice(0, length).join(""),
+  );
+  const prefix = prefixes
+    .reverse()
+    .find((candidate) => new TextEncoder().encode(candidate).length <= limit);
+  return prefix === body ? body : `${prefix}… [truncated]`;
+}
+
+const detailPrefix = "Failed to upload data: 413 Payload Too Large - ";
+
+describe("bounded error-body properties", () => {
+  it("does not truncate at the exact limit when only empty chunks follow", async () => {
+    const { response, reader } = streamResponse([
+      new TextEncoder().encode("A"),
+      new Uint8Array(),
+      new Uint8Array(),
+    ]);
+    const problem = expectErr(
+      await validateHttpResponse(response, "upload data", 502, {
+        maxErrorBodyBytes: 1,
+      }),
+    );
+    expect(problem.detail).toBe(`${detailPrefix}A`);
+    expect(reader.cancel).not.toHaveBeenCalled();
+  });
+
+  it("retains exactly the complete-character prefix within the byte budget for text wrappers", async () => {
+    await fc.assert(
+      fc.asyncProperty(boundedBody, async ({ body, limit }) => {
+        const response = {
+          ok: false,
+          status: 413,
+          statusText: "Payload Too Large",
+          text: async () => body,
+        };
+        const problem = expectErr(
+          await validateHttpResponse(response, "upload data", 502, {
+            maxErrorBodyBytes: limit,
+          }),
+        );
+        expect(problem.detail).toBe(
+          `${detailPrefix}${expectedBody(body, limit)}`,
+        );
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  it("preserves bounded detail across byte chunking and empty chunks", async () => {
+    await fc.assert(
+      fc.asyncProperty(boundedBody, async ({ body, limit, cuts }) => {
+        const bytes = new TextEncoder().encode(body);
+        const offsets = [0, ...[...cuts].sort((a, b) => a - b), bytes.length];
+        const partitioned = offsets
+          .slice(1)
+          .map((end, index) => bytes.slice(offsets[index], end));
+        // Always exercise empty chunks, including after the final body byte.
+        const chunkings = [
+          [bytes],
+          [new Uint8Array(), ...partitioned, new Uint8Array()],
+        ];
+        for (const chunks of chunkings) {
+          const { response, reader } = streamResponse(chunks);
+          const problem = expectErr(
+            await validateHttpResponse(response, "upload data", 502, {
+              maxErrorBodyBytes: limit,
+            }),
+          );
+          // TextDecoder consumes an initial UTF-8 BOM, like fetch Response.text().
+          // The byte budget still applies to the original bytes, including BOM.
+          const decodedPrefix = expectedBody(body, limit).replace(
+            /^\uFEFF/,
+            "",
+          );
+          expect(problem.detail).toBe(`${detailPrefix}${decodedPrefix}`);
+          expect(response.text).not.toHaveBeenCalled();
+          expect(reader.cancel).toHaveBeenCalledTimes(
+            bytes.length > limit ? 1 : 0,
+          );
+        }
+      }),
+      { numRuns: 100 },
+    );
   });
 });

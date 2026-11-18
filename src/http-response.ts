@@ -99,16 +99,8 @@ async function readBoundedErrorBody(
 
     body += decoder.decode(value, { stream: true });
     bytesRead += value.byteLength;
-
-    if (bytesRead === maxBytes) {
-      const nextChunk = await reader.read();
-      if (nextChunk.done) {
-        return body + decoder.decode();
-      }
-
-      await cancelReader(reader);
-      return `${body}${TRUNCATED_ERROR_BODY_SUFFIX}`;
-    }
+    // Continue through empty chunks even at the limit. Only additional bytes
+    // prove truncation; the next non-empty chunk takes the overflow branch.
   }
 }
 
